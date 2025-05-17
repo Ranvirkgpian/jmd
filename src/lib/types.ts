@@ -2,6 +2,7 @@
 export interface Shopkeeper {
   id: string;
   name: string;
+  mobileNumber?: string; // Added optional mobile number
   createdAt: string; // ISO Date string
 }
 
@@ -9,7 +10,7 @@ export interface Transaction {
   id: string;
   shopkeeperId: string;
   date: string; // ISO Date string
-  description?: string; // Made optional
+  // description?: string; // Commented out or removed as per previous request
   goodsGiven: number;
   moneyReceived: number;
   createdAt: string; // ISO Date string
@@ -17,8 +18,8 @@ export interface Transaction {
 
 export interface DataContextType {
   shopkeepers: Shopkeeper[];
-  addShopkeeper: (name: string) => void;
-  updateShopkeeper: (id: string, name: string) => void;
+  addShopkeeper: (name: string, mobileNumber?: string) => void; // Updated signature
+  updateShopkeeper: (id: string, name: string, mobileNumber?: string) => void; // Updated signature
   deleteShopkeeper: (id: string) => void;
   getShopkeeperById: (id: string) => Shopkeeper | undefined;
   transactions: Transaction[];
@@ -28,4 +29,3 @@ export interface DataContextType {
   deleteTransaction: (id: string) => void;
   getTransactionById: (id: string) => Transaction | undefined;
 }
-

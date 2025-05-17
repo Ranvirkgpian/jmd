@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -11,6 +12,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const shopkeeperSchema = z.object({
   name: z.string().min(1, { message: "Shopkeeper name is required." }).max(100, { message: "Name cannot exceed 100 characters." }),
+  mobileNumber: z.string()
+    .max(15, { message: "Mobile number cannot exceed 15 characters." })
+    .optional()
+    .or(z.literal('')) // Allows empty string to be valid for optional field
+    .transform(value => value === '' ? undefined : value), // Transform empty string to undefined
 });
 
 type ShopkeeperFormData = z.infer<typeof shopkeeperSchema>;
@@ -24,7 +30,9 @@ interface ShopkeeperFormProps {
 export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFormProps) {
   const form = useForm<ShopkeeperFormData>({
     resolver: zodResolver(shopkeeperSchema),
-    defaultValues: initialData ? { name: initialData.name } : { name: '' },
+    defaultValues: initialData 
+      ? { name: initialData.name, mobileNumber: initialData.mobileNumber || '' } 
+      : { name: '', mobileNumber: '' },
   });
 
   const handleSubmit = (data: ShopkeeperFormData) => {
@@ -43,6 +51,19 @@ export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFo
               <FormLabel>Shopkeeper Name</FormLabel>
               <FormControl>
                 <Input placeholder="Enter shopkeeper name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="mobileNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mobile Number (Optional)</FormLabel>
+              <FormControl>
+                <Input type="tel" placeholder="Enter mobile number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

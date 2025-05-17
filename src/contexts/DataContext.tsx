@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Shopkeeper, Transaction, DataContextType } from '@/lib/types';
@@ -12,13 +13,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [shopkeepers, setShopkeepers] = useLocalStorage<Shopkeeper[]>('shopkeepers', []);
   const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
 
-  const addShopkeeper = (name: string) => {
-    const newShopkeeper: Shopkeeper = { id: uuidv4(), name, createdAt: formatISO(new Date()) };
+  const addShopkeeper = (name: string, mobileNumber?: string) => {
+    const newShopkeeper: Shopkeeper = { 
+      id: uuidv4(), 
+      name, 
+      mobileNumber: mobileNumber || undefined, // Store as undefined if empty
+      createdAt: formatISO(new Date()) 
+    };
     setShopkeepers(prev => [...prev, newShopkeeper]);
   };
 
-  const updateShopkeeper = (id: string, name: string) => {
-    setShopkeepers(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  const updateShopkeeper = (id: string, name: string, mobileNumber?: string) => {
+    setShopkeepers(prev => prev.map(s => s.id === id ? { ...s, name, mobileNumber: mobileNumber || undefined } : s));
   };
 
   const deleteShopkeeper = (id: string) => {

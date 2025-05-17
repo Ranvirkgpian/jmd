@@ -6,11 +6,11 @@ import Link from 'next/link';
 import { useData } from '@/contexts/DataContext';
 import type { Shopkeeper } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input'; // Import Input
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search } from 'lucide-react'; // Import Search
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function HomePage() {
@@ -19,7 +19,7 @@ export default function HomePage() {
   const [editingShopkeeper, setEditingShopkeeper] = useState<Shopkeeper | null>(null);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [shopkeeperToDelete, setShopkeeperToDelete] = useState<Shopkeeper | null>(null);
-  const [searchQuery, setSearchQuery] = useState(''); // State for search query
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -48,21 +48,19 @@ export default function HomePage() {
     }
   };
 
-  const handleShopkeeperFormSubmit = (data: { name: string }) => {
+  const handleShopkeeperFormSubmit = (data: { name: string; mobileNumber?: string }) => {
     if (editingShopkeeper) {
-      updateShopkeeper(editingShopkeeper.id, data.name);
+      updateShopkeeper(editingShopkeeper.id, data.name, data.mobileNumber);
     } else {
-      addShopkeeper(data.name);
+      addShopkeeper(data.name, data.mobileNumber);
     }
     setEditingShopkeeper(null);
   };
 
-  // Handler for search input change
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
 
-  // Filter shopkeepers based on search query
   const filteredShopkeepers = useMemo(() => {
     if (!searchQuery) {
       return shopkeepers;
@@ -139,8 +137,14 @@ export default function HomePage() {
               <CardHeader>
                 <CardTitle className="text-xl">{shopkeeper.name}</CardTitle>
                 <CardDescription>
-                  Added on: {format(new Date(shopkeeper.createdAt), "PPP")}
+                  Added: {format(new Date(shopkeeper.createdAt), "PPP")}
                 </CardDescription>
+                {shopkeeper.mobileNumber && (
+                  <CardDescription className="flex items-center text-sm pt-1">
+                    <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {shopkeeper.mobileNumber}
+                  </CardDescription>
+                )}
               </CardHeader>
               <CardContent className="flex-grow">
                 {/* Future content related to shopkeeper summary can go here */}
