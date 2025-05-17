@@ -3,7 +3,9 @@ import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import { DataProvider } from '@/contexts/DataContext';
 import { AppHeader } from '@/components/AppHeader';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import { SidebarProvider, Sidebar, SidebarInset, SidebarHeader } from '@/components/ui/sidebar';
+import { Landmark } from 'lucide-react';
 
 
 const geistSans = Geist({
@@ -30,11 +32,24 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
         <DataProvider>
-          <AppHeader />
-          <main className="container mx-auto p-4">
-            {children}
-          </main>
-          <Toaster />
+          <SidebarProvider>
+            <Sidebar>
+              <SidebarHeader className="p-4">
+                <div className="flex items-center gap-2">
+                  <Landmark className="h-6 w-6 text-primary" />
+                  <h2 className="text-lg font-semibold">JMD Enterprises</h2>
+                </div>
+              </SidebarHeader>
+              {/* Sidebar navigation items can be added here later */}
+            </Sidebar>
+            <SidebarInset>
+              <AppHeader />
+              <main className="container mx-auto p-4">
+                {children}
+              </main>
+              <Toaster />
+            </SidebarInset>
+          </SidebarProvider>
         </DataProvider>
       </body>
     </html>
