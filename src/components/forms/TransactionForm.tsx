@@ -8,14 +8,12 @@ import * as z from 'zod';
 import type { Transaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { DatePicker } from '@/components/ui/datepicker'; // Assuming you created this
 import { parseISO } from 'date-fns';
 
 const transactionSchema = z.object({
   date: z.date({ required_error: "Please select a date." }),
-  description: z.string().min(1, "Description is required.").max(200, "Description cannot exceed 200 characters."),
   goodsGiven: z.coerce.number().min(0, "Value must be non-negative.").default(0),
   moneyReceived: z.coerce.number().min(0, "Value must be non-negative.").default(0),
 }).refine(data => data.goodsGiven > 0 || data.moneyReceived > 0, {
@@ -37,14 +35,12 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
     resolver: zodResolver(transactionSchema),
     defaultValues: initialData
       ? {
-          ...initialData,
           date: initialData.date ? parseISO(initialData.date) : new Date(),
           goodsGiven: initialData.goodsGiven ?? 0,
           moneyReceived: initialData.moneyReceived ?? 0,
         }
       : {
           date: new Date(),
-          description: '',
           goodsGiven: 0,
           moneyReceived: 0
         },
@@ -52,7 +48,7 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
 
   const handleSubmit = (data: TransactionFormData) => {
     onSubmit(data);
-    form.reset({ date: new Date(), description: '', goodsGiven: 0, moneyReceived: 0 });
+    form.reset({ date: new Date(), goodsGiven: 0, moneyReceived: 0 });
   };
 
   return (
@@ -74,19 +70,6 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
                   />
                 )}
               />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              {/* <FormLabel>Description</FormLabel> */}
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -133,3 +116,4 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
     </Form>
   );
 }
+

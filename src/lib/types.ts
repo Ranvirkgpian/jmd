@@ -1,3 +1,4 @@
+
 export interface Shopkeeper {
   id: string;
   name: string;
@@ -8,7 +9,7 @@ export interface Transaction {
   id: string;
   shopkeeperId: string;
   date: string; // ISO Date string
-  description: string;
+  description?: string; // Made optional
   goodsGiven: number;
   moneyReceived: number;
   createdAt: string; // ISO Date string
@@ -27,3 +28,4 @@ export interface DataContextType {
   deleteTransaction: (id: string) => void;
   getTransactionById: (id: string) => Transaction | undefined;
 }
+
