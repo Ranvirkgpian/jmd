@@ -172,7 +172,7 @@ export default function ShopkeeperTransactionsPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Money Received</p>
-              <p className="text-2xl font-semibold">₹{summary.totalMoneyReceived.toFixed(2)}</p>
+              <p className="text-2xl font-semibold text-green-600">₹{summary.totalMoneyReceived.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Current Balance</p>
