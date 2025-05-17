@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -12,7 +13,6 @@ import { TransactionDialog } from '@/components/dialogs/TransactionDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { PlusCircle, Edit3, Trash2, ArrowLeft, FileText, MessageSquare, ReceiptIndianRupee } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useToast } from "@/hooks/use-toast";
 
 export default function ShopkeeperTransactionsPage() {
   const router = useRouter();
@@ -25,9 +25,7 @@ export default function ShopkeeperTransactionsPage() {
     addTransaction, 
     updateTransaction, 
     deleteTransaction,
-    getTransactionById
   } = useData();
-  const { toast } = useToast();
 
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -57,7 +55,7 @@ export default function ShopkeeperTransactionsPage() {
   }, [transactions]);
 
   if (!isMounted) {
-    return <div className="flex justify-center items-center h-64"><p>Loading...</p></div>; // Or a proper skeleton loader
+    return <div className="flex justify-center items-center h-64"><p>Loading...</p></div>;
   }
 
   if (!shopkeeper) {
@@ -105,11 +103,7 @@ export default function ShopkeeperTransactionsPage() {
   };
 
   const handleExportPdf = () => {
-    toast({
-      title: "Feature Not Implemented",
-      description: "PDF report generation is not yet available.",
-      variant: "default",
-    });
+    window.print();
   };
 
   const handleShareWhatsApp = () => {
@@ -120,43 +114,97 @@ export default function ShopkeeperTransactionsPage() {
   
   return (
     <div className="space-y-6">
-      <Button variant="outline" size="sm" onClick={() => router.push('/')} className="mb-4">
+      <Button variant="outline" size="sm" onClick={() => router.push('/')} className="mb-4 hide-on-print">
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Shopkeepers
       </Button>
 
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <h2 className="text-3xl font-semibold tracking-tight">Transactions for <span className="text-primary">{shopkeeper.name}</span></h2>
-        <Button onClick={handleAddTransaction} className="shadow-md w-full sm:w-auto">
-          <PlusCircle className="mr-2 h-5 w-5" /> Add Transaction
-        </Button>
+      <div className="printable-area space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <h2 className="text-3xl font-semibold tracking-tight">Transactions for <span className="text-primary">{shopkeeper.name}</span></h2>
+          <Button onClick={handleAddTransaction} className="shadow-md w-full sm:w-auto hide-on-print">
+            <PlusCircle className="mr-2 h-5 w-5" /> Add Transaction
+          </Button>
+        </div>
+
+        {/* Summary Card */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Account Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center md:text-left">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Goods Given</p>
+              <p className="text-2xl font-semibold">₹{summary.totalGoodsGiven.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Money Received</p>
+              <p className="text-2xl font-semibold">₹{summary.totalMoneyReceived.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Current Balance</p>
+              <p className={`text-2xl font-semibold ${summary.balance > 0 ? 'text-red-600' : summary.balance < 0 ? 'text-green-600' : ''}`}>
+                ₹{summary.balanceAmount.toFixed(2)}
+                <span className="text-sm ml-1">({summary.balanceType})</span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transactions List */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {transactions.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
+                   <ReceiptIndianRupee className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <p className="mt-4 text-muted-foreground">No transactions recorded yet for {shopkeeper.name}.</p>
+                <p className="text-muted-foreground">Click "Add Transaction" to record the first one.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right w-[130px]">Goods Given</TableHead>
+                      <TableHead className="text-right w-[140px]">Money Received</TableHead>
+                      <TableHead className="text-right w-[100px] table-actions-col">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{format(parseISO(transaction.date), "MMM d, yyyy")}</TableCell>
+                        <TableCell className="break-words max-w-xs">{transaction.description}</TableCell>
+                        <TableCell className="text-right">₹{transaction.goodsGiven.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">₹{transaction.moneyReceived.toFixed(2)}</TableCell>
+                        <TableCell className="text-right table-actions-col">
+                          <div className="flex justify-end space-x-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditTransaction(transaction)} aria-label="Edit transaction">
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTransaction(transaction)} aria-label="Delete transaction" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Summary Card */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl">Account Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center md:text-left">
-          <div>
-            <p className="text-sm text-muted-foreground">Total Goods Given</p>
-            <p className="text-2xl font-semibold">₹{summary.totalGoodsGiven.toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Total Money Received</p>
-            <p className="text-2xl font-semibold">₹{summary.totalMoneyReceived.toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Current Balance</p>
-            <p className={`text-2xl font-semibold ${summary.balance > 0 ? 'text-red-600' : summary.balance < 0 ? 'text-green-600' : ''}`}>
-              ₹{summary.balanceAmount.toFixed(2)}
-              <span className="text-sm ml-1">({summary.balanceType})</span>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Report Actions */}
-      <Card className="shadow-lg">
+      
+      {/* Report Actions Card - will be hidden via CSS during print */}
+      <Card className="shadow-lg reports-card">
         <CardHeader>
             <CardTitle className="text-xl">Reports</CardTitle>
         </CardHeader>
@@ -170,57 +218,6 @@ export default function ShopkeeperTransactionsPage() {
         </CardContent>
       </Card>
 
-      {/* Transactions List */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl">Transaction History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <div className="text-center py-10">
-              <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
-                 <ReceiptIndianRupee className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <p className="mt-4 text-muted-foreground">No transactions recorded yet for {shopkeeper.name}.</p>
-              <p className="text-muted-foreground">Click "Add Transaction" to record the first one.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[120px]">Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right w-[130px]">Goods Given</TableHead>
-                    <TableHead className="text-right w-[140px]">Money Received</TableHead>
-                    <TableHead className="text-right w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{format(parseISO(transaction.date), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="break-words max-w-xs">{transaction.description}</TableCell>
-                      <TableCell className="text-right">₹{transaction.goodsGiven.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">₹{transaction.moneyReceived.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditTransaction(transaction)} aria-label="Edit transaction">
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteTransaction(transaction)} aria-label="Delete transaction" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <TransactionDialog
         isOpen={isTransactionDialogOpen}
@@ -239,3 +236,4 @@ export default function ShopkeeperTransactionsPage() {
     </div>
   );
 }
+

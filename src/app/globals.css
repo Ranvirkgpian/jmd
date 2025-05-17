@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -84,5 +85,97 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@media print {
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 20px !important; /* Add some margin for printing */
+    background-color: #fff !important; /* Ensure white background for print */
+    color: #000 !important; /* Ensure black text for print */
+  }
+
+  /* Hide elements by default or by class */
+  header, 
+  nav, 
+  .reports-card,
+  .non-printable,
+  .hide-on-print,
+  dialog,
+  [role="dialog"],
+  footer { /* If there's any footer */
+    display: none !important;
+  }
+
+  /* Ensure main content container takes full width and is visible */
+  main.container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  /* Specify what to print from within the main container */
+  .printable-area {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+  }
+
+  .printable-area * {
+    visibility: visible !important; /* Ensure all children of printable-area are visible */
+    color: #000 !important; /* Ensure black text for print for children */
+  }
+  
+  .printable-area .card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    background-color: #fff !important; /* Ensure card background is white */
+  }
+  
+  .printable-area h2, .printable-area .text-primary {
+    color: #000 !important; /* Black text for titles */
+  }
+  .printable-area h2 { /* Shopkeeper name title */
+    font-size: 1.5rem !important;
+    margin-bottom: 1rem !important;
+  }
+  .printable-area .text-muted-foreground {
+    color: #555 !important; /* Darker grey for muted text */
+  }
+  .printable-area .text-red-600 {
+    color: #D00 !important; /* Standard red for print */
+  }
+  .printable-area .text-green-600 {
+    color: #080 !important; /* Standard green for print */
+  }
+
+
+  .printable-area .table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .printable-area .table th,
+  .printable-area .table td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+    font-size: 0.9rem !important;
+  }
+  .printable-area .table th {
+    background-color: #f2f2f2 !important;
+  }
+
+  .printable-area .overflow-x-auto {
+    overflow-x: visible !important;
+  }
+
+  /* Remove action buttons from table in print */
+  .printable-area .table-actions-col {
+    display: none !important;
   }
 }
