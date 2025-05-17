@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useData } from '@/contexts/DataContext';
 import type { Shopkeeper } from '@/lib/types';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function HomePage() {
@@ -17,6 +17,11 @@ export default function HomePage() {
   const [editingShopkeeper, setEditingShopkeeper] = useState<Shopkeeper | null>(null);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [shopkeeperToDelete, setShopkeeperToDelete] = useState<Shopkeeper | null>(null);
+
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleAddShopkeeper = () => {
     setEditingShopkeeper(null);
@@ -49,6 +54,15 @@ export default function HomePage() {
     setEditingShopkeeper(null);
   };
 
+  if (!isMounted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
+        <Loader2 className="h-12 w-12 animate-spin mb-4" />
+        <p className="text-lg">Loading shopkeepers...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -72,7 +86,9 @@ export default function HomePage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {shopkeepers.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((shopkeeper) => (
+          {[...shopkeepers]
+            .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map((shopkeeper) => (
             <Card key={shopkeeper.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
                 <CardTitle className="text-xl">{shopkeeper.name}</CardTitle>
