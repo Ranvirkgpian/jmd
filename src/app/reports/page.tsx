@@ -106,7 +106,7 @@ export default function ReportsPage() {
             <TrendingDown className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.totalMoneyReceived.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-green-600">₹{summary.totalMoneyReceived.toFixed(2)}</div>
              { (startDate || endDate) && <p className="text-xs text-muted-foreground">Filtered data</p> }
           </CardContent>
         </Card>
