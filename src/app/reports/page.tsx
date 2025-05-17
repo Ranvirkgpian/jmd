@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/datepicker';
-import { BarChart3, TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 interface EnrichedTransaction extends Transaction {
@@ -65,6 +65,10 @@ export default function ReportsPage() {
     setEndDate(undefined);
   };
 
+  const handleExportPdf = () => {
+    window.print();
+  };
+
   if (!isMounted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
@@ -78,6 +82,10 @@ export default function ReportsPage() {
     <div className="space-y-6 printable-area">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h2 className="text-3xl font-semibold tracking-tight">Overall Transaction Report</h2>
+        <Button onClick={handleExportPdf} variant="outline" className="hide-on-print">
+          <FileTextIcon className="mr-2 h-4 w-4" />
+          Export as PDF
+        </Button>
       </div>
 
       {/* Summary Cards */}
