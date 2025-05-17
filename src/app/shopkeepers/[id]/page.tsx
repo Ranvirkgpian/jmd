@@ -95,9 +95,9 @@ export default function ShopkeeperTransactionsPage() {
 
   const handleTransactionFormSubmit = (data: Omit<Transaction, 'id' | 'createdAt' | 'shopkeeperId'> & { date: string }) => {
     if (editingTransaction) {
-      updateTransaction(editingTransaction.id, data);
+      updateTransaction(editingTransaction.id, { ...data, description: data.description || '' });
     } else {
-      addTransaction({ ...data, shopkeeperId });
+      addTransaction({ ...data, shopkeeperId, description: data.description || '' });
     }
     setEditingTransaction(null);
   };
@@ -149,6 +149,21 @@ export default function ShopkeeperTransactionsPage() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Report Actions Card - will be hidden via CSS during print */}
+        <Card className="shadow-lg reports-card">
+          <CardHeader>
+              <CardTitle className="text-xl">Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-4">
+              <Button onClick={handleExportPdf} variant="outline" className="w-full sm:w-auto">
+                  <FileText className="mr-2 h-4 w-4" /> Export as PDF
+              </Button>
+              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
+                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
+              </Button>
+          </CardContent>
+        </Card>
 
         {/* Transactions List */}
         <Card className="shadow-lg">
@@ -170,7 +185,7 @@ export default function ShopkeeperTransactionsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[120px]">Date</TableHead>
-                      <TableHead>Description</TableHead>
+                      {/* <TableHead>Description</TableHead> */}
                       <TableHead className="text-right w-[130px]">Goods Given</TableHead>
                       <TableHead className="text-right w-[140px]">Money Received</TableHead>
                       <TableHead className="text-right w-[100px] table-actions-col">Actions</TableHead>
@@ -180,7 +195,7 @@ export default function ShopkeeperTransactionsPage() {
                     {transactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>{format(parseISO(transaction.date), "MMM d, yyyy")}</TableCell>
-                        <TableCell className="break-words max-w-xs">{transaction.description}</TableCell>
+                        {/* <TableCell className="break-words max-w-xs">{transaction.description}</TableCell> */}
                         <TableCell className="text-right">₹{transaction.goodsGiven.toFixed(2)}</TableCell>
                         <TableCell className="text-right">₹{transaction.moneyReceived.toFixed(2)}</TableCell>
                         <TableCell className="text-right table-actions-col">
@@ -203,22 +218,6 @@ export default function ShopkeeperTransactionsPage() {
         </Card>
       </div>
       
-      {/* Report Actions Card - will be hidden via CSS during print */}
-      <Card className="shadow-lg reports-card">
-        <CardHeader>
-            <CardTitle className="text-xl">Reports</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={handleExportPdf} variant="outline" className="w-full sm:w-auto">
-                <FileText className="mr-2 h-4 w-4" /> Export as PDF
-            </Button>
-            <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
-                <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
-            </Button>
-        </CardContent>
-      </Card>
-
-
       <TransactionDialog
         isOpen={isTransactionDialogOpen}
         onOpenChange={setIsTransactionDialogOpen}
