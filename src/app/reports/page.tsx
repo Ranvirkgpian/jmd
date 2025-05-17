@@ -3,12 +3,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
-import type { Transaction } from '@/lib/types'; // Shopkeeper type might not be needed directly if using getShopkeeperById
+import type { Transaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/datepicker';
-import { BarChart3, TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 interface EnrichedTransaction extends Transaction {
@@ -16,7 +16,7 @@ interface EnrichedTransaction extends Transaction {
 }
 
 export default function ReportsPage() {
-  const { transactions, getShopkeeperById } = useData();
+  const { transactions, getShopkeeperById, loadingTransactions, loadingShopkeepers } = useData(); // Added loading states
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
@@ -26,6 +26,7 @@ export default function ReportsPage() {
   }, []);
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(() => {
+    if (loadingTransactions || loadingShopkeepers) return []; // Don't process if still loading base data
     return transactions
       .map(t => {
         const shopkeeper = getShopkeeperById(t.shopkeeperId);
@@ -35,7 +36,7 @@ export default function ReportsPage() {
         };
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, getShopkeeperById]);
+  }, [transactions, getShopkeeperById, loadingTransactions, loadingShopkeepers]);
 
   const filteredTransactions = useMemo(() => {
     return enrichedTransactions.filter(transaction => {
@@ -69,11 +70,11 @@ export default function ReportsPage() {
     window.print();
   };
 
-  if (!isMounted) {
+  if (!isMounted || loadingShopkeepers || loadingTransactions) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
-        <BarChart3 className="h-12 w-12 animate-pulse mb-4" />
-        <p className="text-lg">Loading Report Data...</p>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">Loading Report Data...</p>
       </div>
     );
   }
@@ -88,7 +89,6 @@ export default function ReportsPage() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -126,7 +126,6 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      {/* Filter Section */}
       <Card className="shadow-md hide-on-print">
         <CardHeader>
           <CardTitle className="text-xl flex items-center">
@@ -158,20 +157,19 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
       
-      {/* Transactions Table Card */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-xl">Detailed Transactions</CardTitle>
            { (startDate || endDate) && <CardDescription>Displaying transactions for the selected date range.</CardDescription> }
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
+          {transactions.length === 0 && !startDate && !endDate ? ( // Check if any filters active before showing "No transactions recorded"
              <div className="text-center py-12">
               <div className="mx-auto bg-secondary p-4 rounded-full w-fit mb-4">
                 <PackageSearch className="h-12 w-12 text-muted-foreground" />
               </div>
               <p className="text-xl font-semibold">No Transactions Recorded Yet</p>
-              <p className="text-muted-foreground">Once you add transactions for shopkeepers, they will appear here.</p>
+              <p className="text-muted-foreground">Once you add transactions, they will appear here.</p>
             </div>
           ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-12">
@@ -212,4 +210,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

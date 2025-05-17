@@ -1,5 +1,5 @@
 
-import { createBrowserClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/types/supabase'; // You'll create this type file later
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -9,4 +9,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase URL and Anon Key must be defined in .env.local');
 }
 
-export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

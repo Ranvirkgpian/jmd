@@ -1,23 +1,27 @@
+
 "use client";
 
 import React from 'react';
 import type { Transaction } from '@/lib/types';
 import { TransactionForm } from '@/components/forms/TransactionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { formatISO } from 'date-fns';
+import { formatISO, isValid } from 'date-fns';
 
 interface TransactionDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: Omit<Transaction, 'id' | 'createdAt' | 'shopkeeperId'> & { date: string }) => void;
+  onSubmit: (data: Omit<Transaction, 'id' | 'created_at' | 'shopkeeperId'> & { date: string }) => Promise<void>; // onSubmit is now async
   initialData?: Transaction | null;
 }
 
 export function TransactionDialog({ isOpen, onOpenChange, onSubmit, initialData }: TransactionDialogProps) {
-  const handleSubmit = (data: { date: Date, description: string, goodsGiven: number, moneyReceived: number }) => {
-    onSubmit({
+  const handleSubmit = async (data: { date: Date, goodsGiven: number, moneyReceived: number }) => {
+    // Ensure date is valid before formatting. If not, default to current date string.
+    const dateString = data.date && isValid(data.date) ? formatISO(data.date) : formatISO(new Date());
+    
+    await onSubmit({ // Call await here
       ...data,
-      date: formatISO(data.date), // Ensure date is string for storage
+      date: dateString, 
     });
     onOpenChange(false); // Close dialog on submit
   };
@@ -32,7 +36,7 @@ export function TransactionDialog({ isOpen, onOpenChange, onSubmit, initialData 
           </DialogDescription>
         </DialogHeader>
         <TransactionForm 
-          onSubmit={handleSubmit} 
+          onSubmit={handleSubmit} // onSubmit in TransactionForm can now be async
           initialData={initialData} 
           onCancel={() => onOpenChange(false)} 
         />

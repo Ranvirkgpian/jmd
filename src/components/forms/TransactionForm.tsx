@@ -9,8 +9,8 @@ import type { Transaction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { DatePicker } from '@/components/ui/datepicker'; // Assuming you created this
-import { parseISO } from 'date-fns';
+import { DatePicker } from '@/components/ui/datepicker';
+import { parseISO, isValid } from 'date-fns';
 
 const transactionSchema = z.object({
   date: z.date({ required_error: "Please select a date." }),
@@ -18,14 +18,14 @@ const transactionSchema = z.object({
   moneyReceived: z.coerce.number().min(0, "Value must be non-negative.").default(0),
 }).refine(data => data.goodsGiven > 0 || data.moneyReceived > 0, {
   message: "Either Goods Given or Money Received must have a value greater than 0.",
-  path: ["goodsGiven"], // You can point this error to one field or make it a form-level error
+  path: ["goodsGiven"], 
 });
 
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
 
 interface TransactionFormProps {
-  onSubmit: (data: TransactionFormData) => void;
+  onSubmit: (data: TransactionFormData) => void | Promise<void>; // onSubmit can be async
   initialData?: Transaction | null;
   onCancel?: () => void;
 }
@@ -35,7 +35,7 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
     resolver: zodResolver(transactionSchema),
     defaultValues: initialData
       ? {
-          date: initialData.date ? parseISO(initialData.date) : new Date(),
+          date: initialData.date && isValid(parseISO(initialData.date)) ? parseISO(initialData.date) : new Date(),
           goodsGiven: initialData.goodsGiven ?? 0,
           moneyReceived: initialData.moneyReceived ?? 0,
         }
@@ -46,8 +46,8 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
         },
   });
 
-  const handleSubmit = (data: TransactionFormData) => {
-    onSubmit(data);
+  const handleSubmit = async (data: TransactionFormData) => {
+    await onSubmit(data); // onSubmit can now be async
     form.reset({ date: new Date(), goodsGiven: 0, moneyReceived: 0 });
   };
 
@@ -103,17 +103,17 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
         {form.formState.errors.root && (
              <p className="text-sm font-medium text-destructive">{form.formState.errors.root.message}</p>
         )}
-         {form.formState.errors.goodsGiven && !form.formState.errors.goodsGiven.ref && (
+         {form.formState.errors.goodsGiven && !form.formState.errors.goodsGiven.ref && ( // Check if it's the custom refine error
              <p className="text-sm font-medium text-destructive">{form.formState.errors.goodsGiven.message}</p>
         )}
 
-
         <div className="flex justify-end space-x-3 pt-2">
           {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
-          <Button type="submit">{initialData ? 'Save Changes' : 'Add Transaction'}</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? (initialData ? 'Saving...' : 'Adding...') : (initialData ? 'Save Changes' : 'Add Transaction')}
+          </Button>
         </div>
       </form>
     </Form>
   );
 }
-

@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TransactionDialog } from '@/components/dialogs/TransactionDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { DatePicker } from '@/components/ui/datepicker';
-import { PlusCircle, Edit3, Trash2, ArrowLeft, FileText, MessageSquare, ReceiptIndianRupee, XCircle, Filter } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, ArrowLeft, FileText, MessageSquare, ReceiptIndianRupee, XCircle, Filter, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 export default function ShopkeeperTransactionsPage() {
@@ -26,6 +26,8 @@ export default function ShopkeeperTransactionsPage() {
     addTransaction, 
     updateTransaction, 
     deleteTransaction,
+    loadingShopkeepers, // Added for loading state
+    loadingTransactions // Added for loading state
   } = useData();
 
   const [isMounted, setIsMounted] = useState(false);
@@ -35,7 +37,6 @@ export default function ShopkeeperTransactionsPage() {
 
   const shopkeeper = useMemo(() => getShopkeeperById(shopkeeperId), [shopkeeperId, getShopkeeperById]);
   
-  // Raw transactions for the shopkeeper
   const transactionsFromShopkeeper = useMemo(() => getTransactionsByShopkeeper(shopkeeperId), [shopkeeperId, getTransactionsByShopkeeper]);
 
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -49,21 +50,13 @@ export default function ShopkeeperTransactionsPage() {
   const displayedTransactions = useMemo(() => {
     return transactionsFromShopkeeper
       .filter(transaction => {
-        if (!startDate && !endDate) return true; // No filter applied
-
+        if (!startDate && !endDate) return true; 
         const transactionDate = parseISO(transaction.date);
-
-        if (startDate) {
-          const filterStartDate = startOfDay(startDate);
-          if (transactionDate < filterStartDate) return false;
-        }
-        if (endDate) {
-          const filterEndDate = endOfDay(endDate);
-          if (transactionDate > filterEndDate) return false;
-        }
+        if (startDate && transactionDate < startOfDay(startDate)) return false;
+        if (endDate && transactionDate > endOfDay(endDate)) return false;
         return true;
       })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Keep original sorting logic
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactionsFromShopkeeper, startDate, endDate]);
 
   const summary = useMemo(() => {
@@ -79,8 +72,13 @@ export default function ShopkeeperTransactionsPage() {
     };
   }, [displayedTransactions]);
 
-  if (!isMounted) {
-    return <div className="flex justify-center items-center h-64"><p>Loading...</p></div>;
+  if (!isMounted || loadingShopkeepers || loadingTransactions) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">Loading data...</p>
+      </div>
+    );
   }
 
   if (!shopkeeper) {
@@ -111,18 +109,18 @@ export default function ShopkeeperTransactionsPage() {
     setIsConfirmDeleteDialogOpen(true);
   };
 
-  const confirmDeleteTransaction = () => {
+  const confirmDeleteTransaction = async () => {
     if (transactionToDelete) {
-      deleteTransaction(transactionToDelete.id);
+      await deleteTransaction(transactionToDelete.id);
       setTransactionToDelete(null);
     }
   };
 
-  const handleTransactionFormSubmit = (data: Omit<Transaction, 'id' | 'createdAt' | 'shopkeeperId' | 'description'> & { date: string }) => {
+  const handleTransactionFormSubmit = async (data: Omit<Transaction, 'id' | 'createdAt' | 'shopkeeperId'> & { date: string }) => {
     if (editingTransaction) {
-      updateTransaction(editingTransaction.id, { ...data });
+      await updateTransaction(editingTransaction.id, { ...data, date: data.date }); // Ensure date is passed correctly
     } else {
-      addTransaction({ ...data, shopkeeperId });
+      await addTransaction({ ...data, shopkeeperId, date: data.date }); // Ensure date is passed correctly
     }
     setEditingTransaction(null);
   };
@@ -132,13 +130,12 @@ export default function ShopkeeperTransactionsPage() {
   };
 
   const handleShareWhatsApp = () => {
-    window.print(); // User saves PDF first
-    // Timeout to allow print dialog to be handled
+    window.print(); 
     setTimeout(() => {
       const message = `Your transaction summary for ${shopkeeper.name} by JMD:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
-    }, 1000); // Adjust delay if needed
+    }, 1000);
   };
 
   const clearFilters = () => {
@@ -160,7 +157,6 @@ export default function ShopkeeperTransactionsPage() {
           </Button>
         </div>
 
-        {/* Summary Card */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl">Account Summary { (startDate || endDate) && <span className="text-sm font-normal text-muted-foreground">(Filtered)</span>}</CardTitle>
@@ -184,7 +180,6 @@ export default function ShopkeeperTransactionsPage() {
           </CardContent>
         </Card>
         
-         {/* Report Actions Card - will be hidden via CSS during print */}
         <Card className="shadow-lg reports-card">
           <CardHeader>
               <CardTitle className="text-xl">Reports</CardTitle>
@@ -199,11 +194,9 @@ export default function ShopkeeperTransactionsPage() {
           </CardContent>
         </Card>
 
-        {/* Transactions List */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl">Transaction History</CardTitle>
-             {/* Date Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-2 mt-4 items-center hide-on-print">
               <DatePicker
                 value={startDate}
@@ -229,7 +222,7 @@ export default function ShopkeeperTransactionsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {transactionsFromShopkeeper.length === 0 ? (
+            {transactionsFromShopkeeper.length === 0 && !startDate && !endDate ? ( // Check if any filters are active
               <div className="text-center py-10">
                 <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
                    <ReceiptIndianRupee className="h-12 w-12 text-muted-foreground" />
@@ -299,4 +292,3 @@ export default function ShopkeeperTransactionsPage() {
     </div>
   );
 }
-

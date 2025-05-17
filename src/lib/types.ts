@@ -8,7 +8,7 @@ export interface Shopkeeper {
 
 export interface Transaction {
   id: string;
-  shopkeeperId: string;
+  shopkeeperId: string; // Foreign key to Shopkeeper
   date: string; // ISO Date string
   goodsGiven: number;
   moneyReceived: number;
@@ -23,18 +23,17 @@ export interface DataContextType {
   deleteShopkeeper: (id: string) => Promise<void>;
   getShopkeeperById: (id: string) => Shopkeeper | undefined;
   
-  // TODO: Migrate transactions to Supabase
   transactions: Transaction[];
+  loadingTransactions: boolean;
   getTransactionsByShopkeeper: (shopkeeperId: string) => Transaction[];
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'created_at'>) => void;
-  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'created_at' | 'shopkeeperId'>>) => void;
-  deleteTransaction: (id: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'created_at'>) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'created_at' | 'shopkeeperId'>>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   getTransactionById: (id: string) => Transaction | undefined;
 }
 
 // Placeholder for Supabase generated types. 
 // You would typically generate this using `supabase gen types typescript > src/lib/types/supabase.ts`
-// For now, we'll define a basic structure.
 export interface Database {
   public: {
     Tables: {
@@ -58,8 +57,32 @@ export interface Database {
           created_at?: string;
         };
       };
-      // TODO: Define transactions table structure here
-      // transactions: { ... }
+      transactions: {
+        Row: {
+          id: string;
+          shopkeeperId: string;
+          date: string; 
+          goodsGiven: number;
+          moneyReceived: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shopkeeperId: string;
+          date: string;
+          goodsGiven: number;
+          moneyReceived: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shopkeeperId?: string;
+          date?: string;
+          goodsGiven?: number;
+          moneyReceived?: number;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
