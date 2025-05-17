@@ -1,11 +1,22 @@
+
 import type {Metadata} from 'next';
+import Link from 'next/link';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import { DataProvider } from '@/contexts/DataContext';
 import { AppHeader } from '@/components/AppHeader';
 import { Toaster } from "@/components/ui/toaster";
-import { SidebarProvider, Sidebar, SidebarInset, SidebarHeader } from '@/components/ui/sidebar';
-import { Landmark } from 'lucide-react';
+import { 
+  SidebarProvider, 
+  Sidebar, 
+  SidebarInset, 
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton
+} from '@/components/ui/sidebar';
+import { Landmark, Home as HomeIcon, FileText as FileTextIcon } from 'lucide-react';
 
 
 const geistSans = Geist({
@@ -40,7 +51,31 @@ export default function RootLayout({
                   <h2 className="text-lg font-semibold">JMD Enterprises</h2>
                 </div>
               </SidebarHeader>
-              {/* Sidebar navigation items can be added here later */}
+              <SidebarContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <Link href="/" legacyBehavior passHref>
+                      <SidebarMenuButton asChild>
+                        <a>
+                          <HomeIcon />
+                          Home
+                        </a>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link href="/reports" legacyBehavior passHref>
+                       {/* You can update this href later when the reports page is ready */}
+                      <SidebarMenuButton asChild>
+                        <a>
+                          <FileTextIcon />
+                          Transaction report
+                        </a>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarContent>
             </Sidebar>
             <SidebarInset>
               <AppHeader />
