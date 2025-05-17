@@ -94,7 +94,7 @@ export default function HomePage() {
               placeholder="Search shopkeepers..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="pl-9 shadow-sm w-full"
+              className="pl-9 shadow-sm w-full bg-secondary"
               aria-label="Search shopkeepers"
             />
           </div>
