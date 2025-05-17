@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone } from 'lucide-react';
-import { format } from 'date-fns';
 
 export default function HomePage() {
   const { shopkeepers, addShopkeeper, updateShopkeeper, deleteShopkeeper } = useData();
@@ -136,13 +135,14 @@ export default function HomePage() {
             <Card key={shopkeeper.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
                 <CardTitle className="text-xl">{shopkeeper.name}</CardTitle>
-                <CardDescription>
-                  Added: {format(new Date(shopkeeper.createdAt), "PPP")}
-                </CardDescription>
-                {shopkeeper.mobileNumber && (
+                {shopkeeper.mobileNumber ? (
                   <CardDescription className="flex items-center text-sm pt-1">
                     <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
                     {shopkeeper.mobileNumber}
+                  </CardDescription>
+                ) : (
+                  <CardDescription className="text-sm pt-1 italic text-muted-foreground/70">
+                    No mobile number
                   </CardDescription>
                 )}
               </CardHeader>
