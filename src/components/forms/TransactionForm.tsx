@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -82,7 +83,7 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              {/* <FormLabel>Description</FormLabel> */}
               <FormControl>
                 <Textarea placeholder="Enter transaction details" {...field} />
               </FormControl>
