@@ -1,14 +1,16 @@
+
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useData } from '@/contexts/DataContext';
 import type { Shopkeeper } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input'; // Import Input
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search } from 'lucide-react'; // Import Search
 import { format } from 'date-fns';
 
 export default function HomePage() {
@@ -17,6 +19,7 @@ export default function HomePage() {
   const [editingShopkeeper, setEditingShopkeeper] = useState<Shopkeeper | null>(null);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [shopkeeperToDelete, setShopkeeperToDelete] = useState<Shopkeeper | null>(null);
+  const [searchQuery, setSearchQuery] = useState(''); // State for search query
 
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -54,6 +57,22 @@ export default function HomePage() {
     setEditingShopkeeper(null);
   };
 
+  // Handler for search input change
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  // Filter shopkeepers based on search query
+  const filteredShopkeepers = useMemo(() => {
+    if (!searchQuery) {
+      return shopkeepers;
+    }
+    return shopkeepers.filter(shopkeeper =>
+      shopkeeper.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [shopkeepers, searchQuery]);
+
+
   if (!isMounted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
@@ -65,14 +84,27 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h2 className="text-3xl font-semibold tracking-tight">Shopkeepers</h2>
-        <Button onClick={handleAddShopkeeper} className="shadow-md">
-          <PlusCircle className="mr-2 h-5 w-5" /> Add Shopkeeper
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search shopkeepers..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="pl-9 shadow-sm w-full"
+              aria-label="Search shopkeepers"
+            />
+          </div>
+          <Button onClick={handleAddShopkeeper} className="shadow-md w-full sm:w-auto">
+            <PlusCircle className="mr-2 h-5 w-5" /> Add Shopkeeper
+          </Button>
+        </div>
       </div>
 
-      {shopkeepers.length === 0 ? (
+      {shopkeepers.length === 0 && !searchQuery ? (
         <Card className="text-center py-12 shadow-lg">
           <CardHeader>
             <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
@@ -84,9 +116,23 @@ export default function HomePage() {
             <p className="text-muted-foreground">Click "Add Shopkeeper" to get started.</p>
           </CardContent>
         </Card>
+      ) : filteredShopkeepers.length === 0 ? (
+        <Card className="text-center py-12 shadow-lg">
+          <CardHeader>
+            <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
+              <PackageSearch className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <CardTitle className="mt-4 text-2xl">No Shopkeepers Found</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              No shopkeepers match your search criteria. Try a different search or add a new shopkeeper.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...shopkeepers]
+          {[...filteredShopkeepers]
             .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .map((shopkeeper) => (
             <Card key={shopkeeper.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
