@@ -11,15 +11,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
-  const { shopkeepers, addShopkeeper, updateShopkeeper, deleteShopkeeper } = useData();
+  const { 
+    shopkeepers, 
+    loadingShopkeepers, 
+    addShopkeeper, 
+    updateShopkeeper, 
+    deleteShopkeeper 
+  } = useData();
+  const { toast } = useToast();
+
   const [isShopkeeperDialogOpen, setIsShopkeeperDialogOpen] = useState(false);
   const [editingShopkeeper, setEditingShopkeeper] = useState<Shopkeeper | null>(null);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [shopkeeperToDelete, setShopkeeperToDelete] = useState<Shopkeeper | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // isMounted is no longer strictly necessary for the Supabase loading pattern,
+  // but keeping it doesn't hurt if there are other client-only dependencies.
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -40,19 +51,21 @@ export default function HomePage() {
     setIsConfirmDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (shopkeeperToDelete) {
-      deleteShopkeeper(shopkeeperToDelete.id);
+      await deleteShopkeeper(shopkeeperToDelete.id);
+      // Toast is now handled in DataContext
       setShopkeeperToDelete(null);
     }
   };
 
-  const handleShopkeeperFormSubmit = (data: { name: string; mobileNumber?: string }) => {
+  const handleShopkeeperFormSubmit = async (data: { name: string; mobileNumber?: string }) => {
     if (editingShopkeeper) {
-      updateShopkeeper(editingShopkeeper.id, data.name, data.mobileNumber);
+      await updateShopkeeper(editingShopkeeper.id, data.name, data.mobileNumber);
     } else {
-      addShopkeeper(data.name, data.mobileNumber);
+      await addShopkeeper(data.name, data.mobileNumber);
     }
+    // Toast is now handled in DataContext
     setEditingShopkeeper(null);
   };
 
@@ -70,7 +83,7 @@ export default function HomePage() {
   }, [shopkeepers, searchQuery]);
 
 
-  if (!isMounted) {
+  if (!isMounted || loadingShopkeepers) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
         <Loader2 className="h-12 w-12 animate-spin mb-4" />
@@ -110,7 +123,7 @@ export default function HomePage() {
             <CardTitle className="mt-4 text-2xl">No Shopkeepers Yet</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Click "Add Shopkeeper" to get started.</p>
+            <p className="text-muted-foreground">Click "Add Shopkeeper" to get started, or check your Supabase setup if you expect data.</p>
           </CardContent>
         </Card>
       ) : filteredShopkeepers.length === 0 ? (
@@ -129,8 +142,8 @@ export default function HomePage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...filteredShopkeepers]
-            .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          {[...filteredShopkeepers] // Sort a copy
+            .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .map((shopkeeper) => (
             <Card key={shopkeeper.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
@@ -178,7 +191,7 @@ export default function HomePage() {
         onOpenChange={setIsConfirmDeleteDialogOpen}
         onConfirm={confirmDelete}
         title="Delete Shopkeeper"
-        description={`Are you sure you want to delete ${shopkeeperToDelete?.name}? This action will also delete all associated transactions and cannot be undone.`}
+        description={`Are you sure you want to delete ${shopkeeperToDelete?.name}? This action will also delete all associated transactions (from local storage for now) and cannot be undone.`}
         confirmButtonText="Delete"
       />
     </div>

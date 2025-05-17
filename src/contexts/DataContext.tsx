@@ -2,52 +2,117 @@
 "use client";
 
 import type { Shopkeeper, Transaction, DataContextType } from '@/lib/types';
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import useLocalStorage from '@/hooks/use-local-storage';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import useLocalStorage from '@/hooks/use-local-storage'; // Still used for transactions
 import { v4 as uuidv4 } from 'uuid';
 import { formatISO } from 'date-fns';
+import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
+import { useToast } from "@/hooks/use-toast";
+
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [shopkeepers, setShopkeepers] = useLocalStorage<Shopkeeper[]>('shopkeepers', []);
+  const { toast } = useToast();
+  const [shopkeepers, setShopkeepers] = useState<Shopkeeper[]>([]);
+  const [loadingShopkeepers, setLoadingShopkeepers] = useState(true);
+
+  // TODO: Migrate transactions to Supabase
   const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
 
-  const addShopkeeper = (name: string, mobileNumber?: string) => {
-    const newShopkeeper: Shopkeeper = { 
-      id: uuidv4(), 
-      name, 
-      mobileNumber: mobileNumber || undefined, // Store as undefined if empty
-      createdAt: formatISO(new Date()) 
+  // Fetch initial shopkeepers from Supabase
+  useEffect(() => {
+    const fetchShopkeepers = async () => {
+      setLoadingShopkeepers(true);
+      const { data, error } = await supabase
+        .from('shopkeepers')
+        .select('id, name, mobileNumber, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching shopkeepers:', error);
+        toast({ title: "Error", description: "Could not fetch shopkeepers.", variant: "destructive" });
+        setShopkeepers([]);
+      } else {
+        setShopkeepers(data || []);
+      }
+      setLoadingShopkeepers(false);
     };
-    setShopkeepers(prev => [...prev, newShopkeeper]);
+    fetchShopkeepers();
+  }, [toast]);
+
+  const addShopkeeper = async (name: string, mobileNumber?: string) => {
+    const { data: newShopkeeper, error } = await supabase
+      .from('shopkeepers')
+      .insert([{ name, mobileNumber: mobileNumber || null }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding shopkeeper:', error);
+      toast({ title: "Error", description: "Could not add shopkeeper.", variant: "destructive" });
+    } else if (newShopkeeper) {
+      setShopkeepers(prev => [newShopkeeper as Shopkeeper, ...prev]);
+      toast({ title: "Success", description: "Shopkeeper added." });
+    }
   };
 
-  const updateShopkeeper = (id: string, name: string, mobileNumber?: string) => {
-    setShopkeepers(prev => prev.map(s => s.id === id ? { ...s, name, mobileNumber: mobileNumber || undefined } : s));
+  const updateShopkeeper = async (id: string, name: string, mobileNumber?: string) => {
+    const { data: updatedShopkeeper, error } = await supabase
+      .from('shopkeepers')
+      .update({ name, mobileNumber: mobileNumber || null })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating shopkeeper:', error);
+      toast({ title: "Error", description: "Could not update shopkeeper.", variant: "destructive" });
+    } else if (updatedShopkeeper) {
+      setShopkeepers(prev => prev.map(s => s.id === id ? (updatedShopkeeper as Shopkeeper) : s));
+      toast({ title: "Success", description: "Shopkeeper updated." });
+    }
   };
 
-  const deleteShopkeeper = (id: string) => {
-    setShopkeepers(prev => prev.filter(s => s.id !== id));
-    // Also delete transactions associated with this shopkeeper
+  const deleteShopkeeper = async (id: string) => {
+    // First, delete associated transactions from localStorage (if any)
+    // TODO: When transactions are in Supabase, delete them from Supabase first or handle via cascade.
     setTransactions(prev => prev.filter(t => t.shopkeeperId !== id));
+
+    const { error } = await supabase
+      .from('shopkeepers')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting shopkeeper:', error);
+      toast({ title: "Error", description: "Could not delete shopkeeper.", variant: "destructive" });
+    } else {
+      setShopkeepers(prev => prev.filter(s => s.id !== id));
+      toast({ title: "Success", description: "Shopkeeper deleted." });
+    }
   };
   
   const getShopkeeperById = (id: string) => {
     return shopkeepers.find(s => s.id === id);
   };
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-    const newTransaction: Transaction = { ...transaction, id: uuidv4(), createdAt: formatISO(new Date()) };
+  // --- Transaction logic (still uses localStorage) ---
+  // TODO: Migrate all transaction functions to use Supabase
+  const addTransaction = (transaction: Omit<Transaction, 'id' | 'created_at'>) => {
+    const newTransaction: Transaction = { ...transaction, id: uuidv4(), created_at: formatISO(new Date()) };
     setTransactions(prev => [...prev, newTransaction]);
+    toast({ title: "Success", description: "Transaction added." });
   };
 
-  const updateTransaction = (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt' | 'shopkeeperId'>>) => {
+  const updateTransaction = (id: string, updates: Partial<Omit<Transaction, 'id' | 'created_at' | 'shopkeeperId'>>) => {
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    toast({ title: "Success", description: "Transaction updated." });
   };
 
   const deleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
+    toast({ title: "Success", description: "Transaction deleted." });
   };
 
   const getTransactionById = (id: string) => {
@@ -60,18 +125,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
   const contextValue = useMemo(() => ({
     shopkeepers,
+    loadingShopkeepers,
     addShopkeeper,
     updateShopkeeper,
     deleteShopkeeper,
     getShopkeeperById,
-    transactions,
-    getTransactionsByShopkeeper,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    getTransactionById,
-  }), [shopkeepers, transactions]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Removed functions from dependency array as they are stable due to useLocalStorage & direct set calls
+    transactions, // Still from localStorage
+    getTransactionsByShopkeeper, // Still from localStorage
+    addTransaction, // Still for localStorage
+    updateTransaction, // Still for localStorage
+    deleteTransaction, // Still for localStorage
+    getTransactionById, // Still for localStorage
+  }), [shopkeepers, loadingShopkeepers, transactions, setTransactions, toast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>;
 }

@@ -5,7 +5,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Shopkeeper } from '@/lib/types';
+import type { Shopkeeper } from '@/lib/types'; // Ensure this uses the updated Shopkeeper type if created_at changed
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,14 +15,14 @@ const shopkeeperSchema = z.object({
   mobileNumber: z.string()
     .max(15, { message: "Mobile number cannot exceed 15 characters." })
     .optional()
-    .or(z.literal('')) // Allows empty string to be valid for optional field
-    .transform(value => value === '' ? undefined : value), // Transform empty string to undefined
+    .or(z.literal('')) 
+    .transform(value => value === '' ? undefined : value), 
 });
 
 type ShopkeeperFormData = z.infer<typeof shopkeeperSchema>;
 
 interface ShopkeeperFormProps {
-  onSubmit: (data: ShopkeeperFormData) => void;
+  onSubmit: (data: ShopkeeperFormData) => void | Promise<void>; // Can be async now
   initialData?: Shopkeeper | null;
   onCancel?: () => void;
 }
@@ -35,9 +35,9 @@ export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFo
       : { name: '', mobileNumber: '' },
   });
 
-  const handleSubmit = (data: ShopkeeperFormData) => {
-    onSubmit(data);
-    form.reset();
+  const handleSubmit = async (data: ShopkeeperFormData) => {
+    await onSubmit(data); // onSubmit can be async
+    form.reset(); // Reset after submission is complete
   };
 
   return (
@@ -71,7 +71,9 @@ export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFo
         />
         <div className="flex justify-end space-x-3">
           {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
-          <Button type="submit">{initialData ? 'Save Changes' : 'Add Shopkeeper'}</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? (initialData ? 'Saving...' : 'Adding...') : (initialData ? 'Save Changes' : 'Add Shopkeeper')}
+          </Button>
         </div>
       </form>
     </Form>
