@@ -35,18 +35,18 @@ interface TransactionFormProps {
 export function TransactionForm({ onSubmit, initialData, onCancel }: TransactionFormProps) {
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: initialData 
-      ? { 
-          ...initialData, 
+    defaultValues: initialData
+      ? {
+          ...initialData,
           date: initialData.date ? parseISO(initialData.date) : new Date(),
           goodsGiven: initialData.goodsGiven ?? 0,
           moneyReceived: initialData.moneyReceived ?? 0,
-        } 
-      : { 
-          date: new Date(), 
-          description: '', 
-          goodsGiven: 0, 
-          moneyReceived: 0 
+        }
+      : {
+          date: new Date(),
+          description: '',
+          goodsGiven: 0,
+          moneyReceived: 0
         },
   });
 
@@ -85,7 +85,7 @@ export function TransactionForm({ onSubmit, initialData, onCancel }: Transaction
             <FormItem>
               {/* <FormLabel>Description</FormLabel> */}
               <FormControl>
-                <Textarea placeholder="Enter transaction details" {...field} />
+                <Textarea {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
