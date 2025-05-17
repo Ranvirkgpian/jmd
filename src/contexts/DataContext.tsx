@@ -32,7 +32,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (shopkeepersError) {
         console.error('Error fetching shopkeepers:', shopkeepersError);
-        toast({ title: "Error", description: "Could not fetch shopkeepers.", variant: "destructive" });
+        toast({ 
+          title: "Error Fetching Shopkeepers", 
+          description: `Could not fetch shopkeepers. ${shopkeepersError.message || 'Please check console.'}`, 
+          variant: "destructive" 
+        });
         setShopkeepers([]);
       } else {
         setShopkeepers(shopkeepersData || []);
@@ -46,7 +50,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       
       if (transactionsError) {
         console.error('Error fetching transactions:', transactionsError);
-        toast({ title: "Error", description: "Could not fetch transactions.", variant: "destructive" });
+        toast({ 
+          title: "Error Fetching Transactions", 
+          description: `Could not fetch transactions. ${transactionsError.message || 'Please check console.'}`, 
+          variant: "destructive" 
+        });
         setTransactions([]);
       } else {
         setTransactions(transactionsData || []);
@@ -65,7 +73,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error adding shopkeeper:', error);
-      toast({ title: "Error", description: "Could not add shopkeeper.", variant: "destructive" });
+      if (error.message) console.error('Supabase error message:', error.message);
+      if (error.details) console.error('Supabase error details:', error.details);
+      if (error.hint) console.error('Supabase error hint:', error.hint);
+      if (error.code) console.error('Supabase error code:', error.code);
+      toast({ 
+        title: "Error Adding Shopkeeper", 
+        description: `Could not add shopkeeper. ${error.message || 'RLS policy? Please check console.'}`, 
+        variant: "destructive" 
+      });
     } else if (newShopkeeper) {
       setShopkeepers(prev => [newShopkeeper as Shopkeeper, ...prev].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       toast({ title: "Success", description: "Shopkeeper added." });
@@ -82,7 +98,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error updating shopkeeper:', error);
-      toast({ title: "Error", description: "Could not update shopkeeper.", variant: "destructive" });
+      if (error.message) console.error('Supabase error message:', error.message);
+      toast({ 
+        title: "Error Updating Shopkeeper", 
+        description: `Could not update shopkeeper. ${error.message || 'Please check console.'}`, 
+        variant: "destructive" 
+      });
     } else if (updatedShopkeeper) {
       setShopkeepers(prev => prev.map(s => s.id === id ? (updatedShopkeeper as Shopkeeper) : s).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       toast({ title: "Success", description: "Shopkeeper updated." });
@@ -90,11 +111,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteShopkeeper = async (id: string) => {
-    // Assuming ON DELETE CASCADE is set up in Supabase for transactions foreign key.
-    // If not, transactions for this shopkeeper would need to be deleted here first.
-    // The local transactions state will update when all transactions are re-fetched or if filtered post-delete.
-    // For now, we rely on Supabase cascade or the next fetch to update transactions.
-
     const { error } = await supabase
       .from('shopkeepers')
       .delete()
@@ -102,12 +118,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error deleting shopkeeper:', error);
-      toast({ title: "Error", description: "Could not delete shopkeeper.", variant: "destructive" });
+      if (error.message) console.error('Supabase error message:', error.message);
+      toast({ 
+        title: "Error Deleting Shopkeeper", 
+        description: `Could not delete shopkeeper. ${error.message || 'Please check console.'}`, 
+        variant: "destructive" 
+      });
     } else {
       setShopkeepers(prev => prev.filter(s => s.id !== id));
-      // Also filter out transactions locally for immediate UI update, 
-      // assuming cascade delete will sync the backend.
-      setTransactions(prev => prev.filter(t => t.shopkeeperId !== id));
+      setTransactions(prev => prev.filter(t => t.shopkeeperId !== id)); // Assuming cascade delete is set up
       toast({ title: "Success", description: "Shopkeeper deleted." });
     }
   };
@@ -117,12 +136,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at'>) => {
-    const transactionData = { 
-      ...transaction, 
-      // Supabase can auto-generate id and created_at if columns are set up for it.
-      // id: uuidv4(), // Not strictly needed if DB generates UUID
-      // created_at: formatISO(new Date()), // Not strictly needed if DB generates timestamp
-    };
+    const transactionData = { ...transaction };
     const { data: newTransaction, error } = await supabase
       .from('transactions')
       .insert([transactionData])
@@ -131,7 +145,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error adding transaction:', error);
-      toast({ title: "Error", description: `Could not add transaction: ${error.message}`, variant: "destructive" });
+      if (error.message) console.error('Supabase error message:', error.message);
+      if (error.details) console.error('Supabase error details:', error.details);
+      if (error.hint) console.error('Supabase error hint:', error.hint);
+      if (error.code) console.error('Supabase error code:', error.code);
+      toast({ 
+        title: "Error Adding Transaction", 
+        description: `Could not add transaction. ${error.message || 'RLS policy? Please check console.'}`, 
+        variant: "destructive" 
+      });
     } else if (newTransaction) {
       setTransactions(prev => [...prev, newTransaction as Transaction].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       toast({ title: "Success", description: "Transaction added." });
@@ -148,7 +170,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     
     if (error) {
       console.error('Error updating transaction:', error);
-      toast({ title: "Error", description: "Could not update transaction.", variant: "destructive" });
+      if (error.message) console.error('Supabase error message:', error.message);
+      toast({ 
+        title: "Error Updating Transaction", 
+        description: `Could not update transaction. ${error.message || 'Please check console.'}`, 
+        variant: "destructive" 
+      });
     } else if (updatedTransaction) {
       setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...(updatedTransaction as Transaction) } : t).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       toast({ title: "Success", description: "Transaction updated." });
@@ -163,7 +190,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error deleting transaction:', error);
-      toast({ title: "Error", description: "Could not delete transaction.", variant: "destructive" });
+      if (error.message) console.error('Supabase error message:', error.message);
+      toast({ 
+        title: "Error Deleting Transaction", 
+        description: `Could not delete transaction. ${error.message || 'Please check console.'}`, 
+        variant: "destructive" 
+      });
     } else {
       setTransactions(prev => prev.filter(t => t.id !== id));
       toast({ title: "Success", description: "Transaction deleted." });
@@ -192,7 +224,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateTransaction,
     deleteTransaction,
     getTransactionById,
-  }), [shopkeepers, loadingShopkeepers, transactions, loadingTransactions, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [shopkeepers, loadingShopkeepers, transactions, loadingTransactions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>;
 }
