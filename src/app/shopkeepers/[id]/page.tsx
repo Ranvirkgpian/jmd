@@ -37,7 +37,7 @@ export default function ShopkeeperTransactionsPage() {
   } = useData();
 
   const [isMounted, setIsMounted] = useState(false);
-  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false); // Used for both PDF and Excel generation states initially
 
   useEffect(() => {
     setIsMounted(true);
@@ -183,12 +183,11 @@ export default function ShopkeeperTransactionsPage() {
   };
 
   const handleShareWhatsApp = () => {
-    window.print(); 
-    setTimeout(() => {
-      const message = `Your transaction summary by JMD for ${shopkeeper.name}:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    }, 1000); 
+    if (!shopkeeper) return;
+    // Your existing logic for generating the WhatsApp message text
+    const message = `Your transaction summary by JMD for ${shopkeeper.name}:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const clearFilters = () => {
@@ -196,7 +195,7 @@ export default function ShopkeeperTransactionsPage() {
     setEndDate(undefined);
   };
   
-  const handleDirectPdfDownload = async () => { // This function is for PDF download, not Excel
+  const handleDirectPdfDownload = async () => { 
     if (!shopkeeper) return;
     const printableArea = document.querySelector('.printable-area') as HTMLElement;
     if (!printableArea) {
@@ -204,12 +203,12 @@ export default function ShopkeeperTransactionsPage() {
       return;
     }
 
-    setIsExportingExcel(true); // Re-using state, consider renaming if PDF and Excel have distinct loading states
+    setIsExportingExcel(true); 
 
     const elementsToHideSelectors = [
+        '.reports-card', 
         '[data-pdf-hide="account-summary"]',
         '[data-pdf-hide="transaction-filters"]',
-        '.reports-card' 
     ];
     const originalDisplays: { element: HTMLElement, display: string }[] = [];
 
@@ -309,7 +308,6 @@ export default function ShopkeeperTransactionsPage() {
                     </>
                   )}
               </Button>
-              {/* This button uses window.print() for PDF/sharing, not direct PDF download */}
               <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
                   <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
               </Button>
@@ -414,6 +412,7 @@ export default function ShopkeeperTransactionsPage() {
     </div>
   );
 }
+    
 
     
 
