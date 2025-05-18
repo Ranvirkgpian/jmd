@@ -14,11 +14,15 @@ import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { DatePicker } from '@/components/ui/datepicker';
 import { PlusCircle, Edit3, Trash2, ArrowLeft, FileText, MessageSquare, ReceiptIndianRupee, XCircle, Filter, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useToast } from "@/hooks/use-toast";
 
 export default function ShopkeeperTransactionsPage() {
   const router = useRouter();
   const params = useParams();
   const shopkeeperId = params.id as string;
+  const { toast } = useToast();
   
   const { 
     getShopkeeperById, 
@@ -26,11 +30,13 @@ export default function ShopkeeperTransactionsPage() {
     addTransaction, 
     updateTransaction, 
     deleteTransaction,
-    loadingShopkeepers, // Added for loading state
-    loadingTransactions // Added for loading state
+    loadingShopkeepers, 
+    loadingTransactions 
   } = useData();
 
   const [isMounted, setIsMounted] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -116,26 +122,83 @@ export default function ShopkeeperTransactionsPage() {
     }
   };
 
-  const handleTransactionFormSubmit = async (data: Omit<Transaction, 'id' | 'createdAt' | 'shopkeeperId'> & { date: string }) => {
+  const handleTransactionFormSubmit = async (data: Omit<Transaction, 'id' | 'created_at' | 'shopkeeperId'> & { date: string }) => {
     if (editingTransaction) {
-      await updateTransaction(editingTransaction.id, { ...data, date: data.date }); // Ensure date is passed correctly
+      await updateTransaction(editingTransaction.id, { ...data, date: data.date });
     } else {
-      await addTransaction({ ...data, shopkeeperId, date: data.date }); // Ensure date is passed correctly
+      await addTransaction({ ...data, shopkeeperId, date: data.date });
     }
     setEditingTransaction(null);
   };
 
-  const handleExportPdf = () => {
-    window.print();
+  const handleDirectPdfDownload = async () => {
+    const reportElement = document.querySelector('.printable-area') as HTMLElement;
+    if (!reportElement || !shopkeeper) {
+      console.error("Printable area or shopkeeper data not found");
+      toast({
+        title: "Error",
+        description: "Could not find content to export or shopkeeper details are missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+    try {
+      const canvas = await html2canvas(reportElement, { 
+        scale: 2,
+        useCORS: true,
+        windowWidth: reportElement.scrollWidth,
+        windowHeight: reportElement.scrollHeight,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfPageHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfPageHeight;
+      }
+      
+      const fileName = shopkeeper.name.toLowerCase().replace(/\s+/g, '-') + '-transaction-report.pdf';
+      pdf.save(fileName);
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error Generating PDF",
+        description: "Could not generate PDF. Please try again or check the console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleShareWhatsApp = () => {
+    // First, trigger the PDF generation and save, then open WhatsApp.
+    // For simplicity, we'll just trigger the browser print for PDF saving for now.
+    // If direct download is preferred here too, this function would need to be async
+    // and call handleDirectPdfDownload, then open WhatsApp.
     window.print(); 
     setTimeout(() => {
       const message = `Your transaction summary for ${shopkeeper.name} by JMD:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
-    }, 1000);
+    }, 1000); // Timeout to allow print dialog interaction
   };
 
   const clearFilters = () => {
@@ -149,7 +212,7 @@ export default function ShopkeeperTransactionsPage() {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Shopkeepers
       </Button>
 
-      <div className="printable-area space-y-6">
+      <div className="printable-area space-y-6"> {/* Content to be printed/exported */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <h2 className="text-3xl font-semibold tracking-tight">Transactions for <span className="text-primary">{shopkeeper.name}</span></h2>
           <Button onClick={handleAddTransaction} className="shadow-md w-full sm:w-auto hide-on-print">
@@ -180,20 +243,6 @@ export default function ShopkeeperTransactionsPage() {
           </CardContent>
         </Card>
         
-        <Card className="shadow-lg reports-card">
-          <CardHeader>
-              <CardTitle className="text-xl">Reports</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleExportPdf} variant="outline" className="w-full sm:w-auto">
-                  <FileText className="mr-2 h-4 w-4" /> Export as PDF
-              </Button>
-              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
-                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
-              </Button>
-          </CardContent>
-        </Card>
-
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl">Transaction History</CardTitle>
@@ -222,7 +271,7 @@ export default function ShopkeeperTransactionsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {transactionsFromShopkeeper.length === 0 && !startDate && !endDate ? ( // Check if any filters are active
+            {transactionsFromShopkeeper.length === 0 && !startDate && !endDate ? ( 
               <div className="text-center py-10">
                 <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
                    <ReceiptIndianRupee className="h-12 w-12 text-muted-foreground" />
@@ -273,7 +322,37 @@ export default function ShopkeeperTransactionsPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </div> {/* End of printable-area */}
+
+      {/* Reports card is now outside printable-area */}
+      <Card className="shadow-lg reports-card hide-on-print"> {/* Added hide-on-print for window.print() scenario */}
+          <CardHeader>
+              <CardTitle className="text-xl">Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={handleDirectPdfDownload} 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                disabled={isGeneratingPdf}
+              >
+                  {isGeneratingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Export as PDF
+                    </>
+                  )}
+              </Button>
+              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
+                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
+              </Button>
+          </CardContent>
+        </Card>
       
       <TransactionDialog
         isOpen={isTransactionDialogOpen}
@@ -292,3 +371,4 @@ export default function ShopkeeperTransactionsPage() {
     </div>
   );
 }
+
