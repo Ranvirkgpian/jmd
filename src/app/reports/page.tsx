@@ -8,10 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/datepicker';
-import { TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileSpreadsheet, Loader2 } from 'lucide-react'; // Changed FileTextIcon to FileSpreadsheet
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 import { useToast } from "@/hooks/use-toast";
 
 interface EnrichedTransaction extends Transaction {
@@ -24,7 +23,7 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false); // Renamed from isGeneratingPdf
 
   useEffect(() => {
     setIsMounted(true);
@@ -71,82 +70,55 @@ export default function ReportsPage() {
     setEndDate(undefined);
   };
 
-  const handleDirectPdfDownload = async () => {
-    const reportElement = document.querySelector('.printable-area') as HTMLElement;
-    if (!reportElement) {
-      console.error("Printable area not found");
+  const handleExportExcel = async () => {
+    if (filteredTransactions.length === 0) {
       toast({
-        title: "Error",
-        description: "Could not find content to export.",
+        title: "No Data",
+        description: "There is no transaction data to export.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsGeneratingPdf(true);
-
-    const elementsToHide = Array.from(reportElement.querySelectorAll('[data-pdf-hide="true"]')) as HTMLElement[];
-    const originalDisplays: string[] = [];
-
-    elementsToHide.forEach(el => {
-        originalDisplays.push(el.style.display);
-        el.style.display = 'none';
-    });
-    
-    // Ensure the main printable area itself is visible for capture if it was accidentally hidden
-    // (though unlikely if we are hiding its children)
-    const reportElementOriginalDisplay = reportElement.style.display;
-    reportElement.style.display = 'block'; // Ensure it's block for layout
-    await new Promise(resolve => setTimeout(resolve, 100)); // Short delay for styles to apply
-
+    setIsExportingExcel(true);
     try {
-      const canvas = await html2canvas(reportElement, { 
-        scale: 2,
-        useCORS: true,
-        windowWidth: reportElement.scrollWidth,
-        windowHeight: reportElement.scrollHeight,
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfPageHeight = pdf.internal.pageSize.getHeight();
-      
-      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      // Prepare data for the Excel sheet
+      const dataForSheet = filteredTransactions.map(t => ({
+        'Shopkeeper Name': t.shopkeeperName,
+        'Date': format(parseISO(t.date), "yyyy-MM-dd"), // Consistent date format
+        'Goods Given (INR)': t.goodsGiven,
+        'Money Received (INR)': t.moneyReceived,
+      }));
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfPageHeight;
+      const worksheet = XLSX.utils.json_to_sheet(dataForSheet);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfPageHeight;
-      }
-      
-      pdf.save('transaction-report.pdf');
+      // Define column widths (optional, but improves readability)
+      const columnWidths = [
+        { wch: 25 }, // Shopkeeper Name
+        { wch: 12 }, // Date
+        { wch: 20 }, // Goods Given
+        { wch: 22 }, // Money Received
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      XLSX.writeFile(workbook, "Transaction-Report.xlsx");
+
       toast({
-        title: "PDF Generated",
-        description: "transaction-report.pdf has been downloaded.",
+        title: "Excel Exported",
+        description: "Transaction-Report.xlsx has been downloaded.",
       });
 
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error exporting Excel:", error);
       toast({
-        title: "Error Generating PDF",
-        description: "Could not generate PDF. Please try again or check console.",
+        title: "Export Error",
+        description: "Could not export data to Excel. Please try again.",
         variant: "destructive",
       });
     } finally {
-      elementsToHide.forEach((el, index) => {
-        el.style.display = originalDisplays[index] || ''; // Restore original or set to default
-      });
-      reportElement.style.display = reportElementOriginalDisplay; // Restore printable-area display
-      setIsGeneratingPdf(false);
+      setIsExportingExcel(false);
     }
   };
 
@@ -165,20 +137,20 @@ export default function ReportsPage() {
       <div data-pdf-hide="true" className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h2 className="text-3xl font-semibold tracking-tight">Overall Transaction Report</h2>
         <Button 
-          onClick={handleDirectPdfDownload} 
+          onClick={handleExportExcel} // Changed from handleDirectPdfDownload
           variant="outline" 
           className="hide-on-print"
-          disabled={isGeneratingPdf}
+          disabled={isExportingExcel} // Changed from isGeneratingPdf
         >
-          {isGeneratingPdf ? (
+          {isExportingExcel ? ( // Changed from isGeneratingPdf
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating PDF...
+              Exporting Excel...
             </>
           ) : (
             <>
-              <FileTextIcon className="mr-2 h-4 w-4" />
-              Export as PDF
+              <FileSpreadsheet className="mr-2 h-4 w-4" /> {/* Changed Icon */}
+              Export as Excel
             </>
           )}
         </Button>
@@ -305,5 +277,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
