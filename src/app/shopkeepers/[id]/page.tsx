@@ -212,7 +212,7 @@ export default function ShopkeeperTransactionsPage() {
   const handleShareWhatsApp = () => {
     window.print(); 
     setTimeout(() => {
-      const message = `Your transaction summary for ${shopkeeper.name} by JMD:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})\n\nPlease find the attached PDF for detailed transactions.`;
+      const message = `Transaction Summary for ${shopkeeper.name} — Prepared by JMD: \nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     }, 1000); // Timeout to allow print dialog interaction
