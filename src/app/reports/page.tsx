@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/datepicker';
-import { BarChart3, TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useToast } from "@/hooks/use-toast";
 
 interface EnrichedTransaction extends Transaction {
   shopkeeperName: string;
@@ -19,6 +20,7 @@ interface EnrichedTransaction extends Transaction {
 
 export default function ReportsPage() {
   const { transactions, getShopkeeperById, loadingTransactions, loadingShopkeepers } = useData();
+  const { toast } = useToast();
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
@@ -73,35 +75,40 @@ export default function ReportsPage() {
     const reportElement = document.querySelector('.printable-area') as HTMLElement;
     if (!reportElement) {
       console.error("Printable area not found");
+      toast({
+        title: "Error",
+        description: "Could not find content to export.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsGeneratingPdf(true);
 
-    try {
-      // Temporarily show elements that are normally hidden for print but should be in PDF via direct download
-      // This example assumes the filter card might be desired. Adjust querySelectorAll if needed.
-      const elementsToTemporarilyShow = reportElement.querySelectorAll('.hide-on-print');
-      elementsToTemporarilyShow.forEach(el => el.classList.remove('hide-on-print-for-direct-download-temp'));
-      
-      // Force a reflow, might help ensure styles are applied before capture
-      reportElement.style.display = 'block'; // Or some other style change to trigger reflow
-      await new Promise(resolve => setTimeout(resolve, 100)); // Short delay
+    const elementsToHide = Array.from(reportElement.querySelectorAll('[data-pdf-hide="true"]')) as HTMLElement[];
+    const originalDisplays: string[] = [];
 
+    elementsToHide.forEach(el => {
+        originalDisplays.push(el.style.display);
+        el.style.display = 'none';
+    });
+    
+    // Ensure the main printable area itself is visible for capture if it was accidentally hidden
+    // (though unlikely if we are hiding its children)
+    const reportElementOriginalDisplay = reportElement.style.display;
+    reportElement.style.display = 'block'; // Ensure it's block for layout
+    await new Promise(resolve => setTimeout(resolve, 100)); // Short delay for styles to apply
+
+    try {
       const canvas = await html2canvas(reportElement, { 
-        scale: 2, // Higher scale for better quality
-        useCORS: true, // If you have external images
-        // Allow a bit more width/height for capture if needed
+        scale: 2,
+        useCORS: true,
         windowWidth: reportElement.scrollWidth,
         windowHeight: reportElement.scrollHeight,
       });
       
-      reportElement.style.display = ''; // Reset style
-      elementsToTemporarilyShow.forEach(el => el.classList.add('hide-on-print-for-direct-download-temp'));
-
-
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, mm, A4
+      const pdf = new jsPDF('p', 'mm', 'a4');
       
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -115,18 +122,30 @@ export default function ReportsPage() {
       heightLeft -= pdfPageHeight;
 
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight; // This should be negative
+        position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
         heightLeft -= pdfPageHeight;
       }
       
       pdf.save('transaction-report.pdf');
+      toast({
+        title: "PDF Generated",
+        description: "transaction-report.pdf has been downloaded.",
+      });
 
     } catch (error) {
       console.error("Error generating PDF:", error);
-      // Add a toast notification for the error
+      toast({
+        title: "Error Generating PDF",
+        description: "Could not generate PDF. Please try again or check console.",
+        variant: "destructive",
+      });
     } finally {
+      elementsToHide.forEach((el, index) => {
+        el.style.display = originalDisplays[index] || ''; // Restore original or set to default
+      });
+      reportElement.style.display = reportElementOriginalDisplay; // Restore printable-area display
       setIsGeneratingPdf(false);
     }
   };
@@ -143,13 +162,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6 printable-area">
-      <style jsx global>{`
-        .hide-on-print-for-direct-download-temp {
-          /* This class might not be needed if html2canvas captures what's visible on screen */
-          /* Or, use it to explicitly show elements before capture and hide after */
-        }
-      `}</style>
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div data-pdf-hide="true" className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h2 className="text-3xl font-semibold tracking-tight">Overall Transaction Report</h2>
         <Button 
           onClick={handleDirectPdfDownload} 
@@ -171,7 +184,7 @@ export default function ReportsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div data-pdf-hide="true" className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Goods Given</CardTitle>
@@ -208,7 +221,7 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      <Card className="shadow-md hide-on-print">
+      <Card data-pdf-hide="true" className="shadow-md hide-on-print">
         <CardHeader>
           <CardTitle className="text-xl flex items-center">
             <Filter className="mr-2 h-5 w-5" /> Filter Transactions
@@ -219,7 +232,6 @@ export default function ReportsPage() {
             value={startDate}
             onChange={setStartDate}
             className="w-full sm:w-auto"
-            // placeholderText="Start Date"
           />
           <span className="text-muted-foreground">to</span>
           <DatePicker
@@ -227,7 +239,6 @@ export default function ReportsPage() {
             onChange={setEndDate}
             disabled={(date) => !!startDate && date < startDate}
             className="w-full sm:w-auto"
-            // placeholderText="End Date"
           />
           <Button 
             onClick={clearFilters} 
@@ -241,7 +252,7 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
       
-      <Card className="shadow-lg">
+      <Card className="shadow-lg"> {/* This card WILL be in the PDF */}
         <CardHeader>
           <CardTitle className="text-xl">Detailed Transactions</CardTitle>
            { (startDate || endDate) && <CardDescription>Displaying transactions for the selected date range.</CardDescription> }
@@ -294,3 +305,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
