@@ -5,9 +5,10 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Shopkeeper } from '@/lib/types'; // Ensure this uses the updated Shopkeeper type if created_at changed
+import type { Shopkeeper } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea'; // Added Textarea
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const shopkeeperSchema = z.object({
@@ -16,13 +17,18 @@ const shopkeeperSchema = z.object({
     .max(15, { message: "Mobile number cannot exceed 15 characters." })
     .optional()
     .or(z.literal('')) 
-    .transform(value => value === '' ? undefined : value), 
+    .transform(value => value === '' ? undefined : value),
+  address: z.string()
+    .max(255, { message: "Address cannot exceed 255 characters."})
+    .optional()
+    .or(z.literal(''))
+    .transform(value => value === '' ? undefined : value),
 });
 
 type ShopkeeperFormData = z.infer<typeof shopkeeperSchema>;
 
 interface ShopkeeperFormProps {
-  onSubmit: (data: ShopkeeperFormData) => void | Promise<void>; // Can be async now
+  onSubmit: (data: ShopkeeperFormData) => void | Promise<void>;
   initialData?: Shopkeeper | null;
   onCancel?: () => void;
 }
@@ -31,13 +37,17 @@ export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFo
   const form = useForm<ShopkeeperFormData>({
     resolver: zodResolver(shopkeeperSchema),
     defaultValues: initialData 
-      ? { name: initialData.name, mobileNumber: initialData.mobileNumber || '' } 
-      : { name: '', mobileNumber: '' },
+      ? { 
+          name: initialData.name, 
+          mobileNumber: initialData.mobileNumber || '',
+          address: initialData.address || '' 
+        } 
+      : { name: '', mobileNumber: '', address: '' },
   });
 
   const handleSubmit = async (data: ShopkeeperFormData) => {
-    await onSubmit(data); // onSubmit can be async
-    form.reset(); // Reset after submission is complete
+    await onSubmit(data);
+    form.reset(); 
   };
 
   return (
@@ -64,6 +74,19 @@ export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFo
               <FormLabel>Mobile Number (Optional)</FormLabel>
               <FormControl>
                 <Input type="tel" placeholder="Enter mobile number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address (Optional)</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Enter address" {...field} rows={3} />
               </FormControl>
               <FormMessage />
             </FormItem>

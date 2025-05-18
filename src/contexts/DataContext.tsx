@@ -3,9 +3,6 @@
 
 import type { Shopkeeper, Transaction, DataContextType } from '@/lib/types';
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-// import useLocalStorage from '@/hooks/use-local-storage'; // No longer needed for transactions
-import { v4 as uuidv4 } from 'uuid'; // Still potentially useful for client-side ID generation if needed before insert
-import { formatISO } from 'date-fns';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,7 +24,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const { data: shopkeepersData, error: shopkeepersError } = await supabase
         .from('shopkeepers')
-        .select('id, name, mobileNumber, created_at')
+        .select('id, name, mobileNumber, address, created_at') // Added address
         .order('created_at', { ascending: false });
 
       if (shopkeepersError) {
@@ -45,7 +42,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
-        .select('*') // Select all columns
+        .select('*') 
         .order('date', { ascending: false });
       
       if (transactionsError) {
@@ -64,10 +61,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchData();
   }, [toast]);
 
-  const addShopkeeper = async (name: string, mobileNumber?: string) => {
+  const addShopkeeper = async (name: string, mobileNumber?: string, address?: string) => {
     const { data: newShopkeeper, error } = await supabase
       .from('shopkeepers')
-      .insert([{ name, mobileNumber: mobileNumber || null }])
+      .insert([{ name, mobileNumber: mobileNumber || null, address: address || null }]) // Added address
       .select()
       .single();
 
@@ -88,10 +85,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateShopkeeper = async (id: string, name: string, mobileNumber?: string) => {
+  const updateShopkeeper = async (id: string, name: string, mobileNumber?: string, address?: string) => {
     const { data: updatedShopkeeper, error } = await supabase
       .from('shopkeepers')
-      .update({ name, mobileNumber: mobileNumber || null })
+      .update({ name, mobileNumber: mobileNumber || null, address: address || null }) // Added address
       .eq('id', id)
       .select()
       .single();
@@ -111,6 +108,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteShopkeeper = async (id: string) => {
+    // Transactions associated with this shopkeeper should be deleted by Supabase 
+    // if "ON DELETE CASCADE" is set on the foreign key in the transactions table.
     const { error } = await supabase
       .from('shopkeepers')
       .delete()
@@ -126,7 +125,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       });
     } else {
       setShopkeepers(prev => prev.filter(s => s.id !== id));
-      setTransactions(prev => prev.filter(t => t.shopkeeperId !== id)); // Assuming cascade delete is set up
+      // Also remove transactions for this shopkeeper from local state if Supabase handles cascade
+      setTransactions(prev => prev.filter(t => t.shopkeeperId !== id)); 
       toast({ title: "Success", description: "Shopkeeper deleted." });
     }
   };

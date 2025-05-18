@@ -3,6 +3,7 @@ export interface Shopkeeper {
   id: string;
   name: string;
   mobileNumber?: string;
+  address?: string; // Added address field
   created_at: string; // ISO Date string, Supabase convention
 }
 
@@ -18,8 +19,8 @@ export interface Transaction {
 export interface DataContextType {
   shopkeepers: Shopkeeper[];
   loadingShopkeepers: boolean;
-  addShopkeeper: (name: string, mobileNumber?: string) => Promise<void>;
-  updateShopkeeper: (id: string, name: string, mobileNumber?: string) => Promise<void>;
+  addShopkeeper: (name: string, mobileNumber?: string, address?: string) => Promise<void>;
+  updateShopkeeper: (id: string, name: string, mobileNumber?: string, address?: string) => Promise<void>;
   deleteShopkeeper: (id: string) => Promise<void>;
   getShopkeeperById: (id: string) => Shopkeeper | undefined;
   
@@ -42,18 +43,21 @@ export interface Database {
           id: string;
           name: string;
           mobileNumber: string | null;
+          address: string | null; // Added address
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
           mobileNumber?: string | null;
+          address?: string | null; // Added address
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
           mobileNumber?: string | null;
+          address?: string | null; // Added address
           created_at?: string;
         };
       };

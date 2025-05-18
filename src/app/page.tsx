@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin } from 'lucide-react'; // Added MapPin
 import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
@@ -28,10 +28,8 @@ export default function HomePage() {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [shopkeeperToDelete, setShopkeeperToDelete] = useState<Shopkeeper | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // isMounted is no longer strictly necessary for the Supabase loading pattern,
-  // but keeping it doesn't hurt if there are other client-only dependencies.
   const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -54,18 +52,16 @@ export default function HomePage() {
   const confirmDelete = async () => {
     if (shopkeeperToDelete) {
       await deleteShopkeeper(shopkeeperToDelete.id);
-      // Toast is now handled in DataContext
       setShopkeeperToDelete(null);
     }
   };
 
-  const handleShopkeeperFormSubmit = async (data: { name: string; mobileNumber?: string }) => {
+  const handleShopkeeperFormSubmit = async (data: { name: string; mobileNumber?: string; address?: string }) => {
     if (editingShopkeeper) {
-      await updateShopkeeper(editingShopkeeper.id, data.name, data.mobileNumber);
+      await updateShopkeeper(editingShopkeeper.id, data.name, data.mobileNumber, data.address);
     } else {
-      await addShopkeeper(data.name, data.mobileNumber);
+      await addShopkeeper(data.name, data.mobileNumber, data.address);
     }
-    // Toast is now handled in DataContext
     setEditingShopkeeper(null);
   };
 
@@ -142,7 +138,7 @@ export default function HomePage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...filteredShopkeepers] // Sort a copy
+          {[...filteredShopkeepers] 
             .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .map((shopkeeper) => (
             <Card key={shopkeeper.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -156,6 +152,12 @@ export default function HomePage() {
                 ) : (
                   <CardDescription className="text-sm pt-1 italic text-muted-foreground/70">
                     No mobile number
+                  </CardDescription>
+                )}
+                 {shopkeeper.address && (
+                  <CardDescription className="flex items-start text-sm pt-1"> {/* items-start for multi-line address */}
+                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" /> 
+                    <span className="whitespace-pre-wrap">{shopkeeper.address}</span>
                   </CardDescription>
                 )}
               </CardHeader>
@@ -191,7 +193,7 @@ export default function HomePage() {
         onOpenChange={setIsConfirmDeleteDialogOpen}
         onConfirm={confirmDelete}
         title="Delete Shopkeeper"
-        description={`Are you sure you want to delete ${shopkeeperToDelete?.name}? This action will also delete all associated transactions (from local storage for now) and cannot be undone.`}
+        description={`Are you sure you want to delete ${shopkeeperToDelete?.name}? This action will also delete all associated transactions and cannot be undone.`}
         confirmButtonText="Delete"
       />
     </div>

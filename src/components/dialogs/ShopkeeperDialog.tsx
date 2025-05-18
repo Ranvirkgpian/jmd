@@ -9,14 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 interface ShopkeeperDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: { name: string; mobileNumber?: string }) => void; // Updated to include mobileNumber
+  onSubmit: (data: { name: string; mobileNumber?: string; address?: string }) => void; // Added address
   initialData?: Shopkeeper | null;
 }
 
 export function ShopkeeperDialog({ isOpen, onOpenChange, onSubmit, initialData }: ShopkeeperDialogProps) {
-  const handleSubmit = (data: { name: string; mobileNumber?: string }) => {
+  const handleSubmit = (data: { name: string; mobileNumber?: string; address?: string }) => {
     onSubmit(data);
-    onOpenChange(false); // Close dialog on submit
+    onOpenChange(false); 
   };
 
   return (
