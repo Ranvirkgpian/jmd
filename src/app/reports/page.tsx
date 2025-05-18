@@ -10,23 +10,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DatePicker } from '@/components/ui/datepicker';
 import { BarChart3, TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileText as FileTextIcon, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface EnrichedTransaction extends Transaction {
   shopkeeperName: string;
 }
 
 export default function ReportsPage() {
-  const { transactions, getShopkeeperById, loadingTransactions, loadingShopkeepers } = useData(); // Added loading states
+  const { transactions, getShopkeeperById, loadingTransactions, loadingShopkeepers } = useData();
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(() => {
-    if (loadingTransactions || loadingShopkeepers) return []; // Don't process if still loading base data
+    if (loadingTransactions || loadingShopkeepers) return [];
     return transactions
       .map(t => {
         const shopkeeper = getShopkeeperById(t.shopkeeperId);
@@ -66,9 +69,68 @@ export default function ReportsPage() {
     setEndDate(undefined);
   };
 
-  const handleExportPdf = () => {
-    window.print();
+  const handleDirectPdfDownload = async () => {
+    const reportElement = document.querySelector('.printable-area') as HTMLElement;
+    if (!reportElement) {
+      console.error("Printable area not found");
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+
+    try {
+      // Temporarily show elements that are normally hidden for print but should be in PDF via direct download
+      // This example assumes the filter card might be desired. Adjust querySelectorAll if needed.
+      const elementsToTemporarilyShow = reportElement.querySelectorAll('.hide-on-print');
+      elementsToTemporarilyShow.forEach(el => el.classList.remove('hide-on-print-for-direct-download-temp'));
+      
+      // Force a reflow, might help ensure styles are applied before capture
+      reportElement.style.display = 'block'; // Or some other style change to trigger reflow
+      await new Promise(resolve => setTimeout(resolve, 100)); // Short delay
+
+      const canvas = await html2canvas(reportElement, { 
+        scale: 2, // Higher scale for better quality
+        useCORS: true, // If you have external images
+        // Allow a bit more width/height for capture if needed
+        windowWidth: reportElement.scrollWidth,
+        windowHeight: reportElement.scrollHeight,
+      });
+      
+      reportElement.style.display = ''; // Reset style
+      elementsToTemporarilyShow.forEach(el => el.classList.add('hide-on-print-for-direct-download-temp'));
+
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, mm, A4
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfPageHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight; // This should be negative
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfPageHeight;
+      }
+      
+      pdf.save('transaction-report.pdf');
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      // Add a toast notification for the error
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
+
 
   if (!isMounted || loadingShopkeepers || loadingTransactions) {
     return (
@@ -81,11 +143,31 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6 printable-area">
+      <style jsx global>{`
+        .hide-on-print-for-direct-download-temp {
+          /* This class might not be needed if html2canvas captures what's visible on screen */
+          /* Or, use it to explicitly show elements before capture and hide after */
+        }
+      `}</style>
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h2 className="text-3xl font-semibold tracking-tight">Overall Transaction Report</h2>
-        <Button onClick={handleExportPdf} variant="outline" className="hide-on-print">
-          <FileTextIcon className="mr-2 h-4 w-4" />
-          Export as PDF
+        <Button 
+          onClick={handleDirectPdfDownload} 
+          variant="outline" 
+          className="hide-on-print"
+          disabled={isGeneratingPdf}
+        >
+          {isGeneratingPdf ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating PDF...
+            </>
+          ) : (
+            <>
+              <FileTextIcon className="mr-2 h-4 w-4" />
+              Export as PDF
+            </>
+          )}
         </Button>
       </div>
 
@@ -137,6 +219,7 @@ export default function ReportsPage() {
             value={startDate}
             onChange={setStartDate}
             className="w-full sm:w-auto"
+            // placeholderText="Start Date"
           />
           <span className="text-muted-foreground">to</span>
           <DatePicker
@@ -144,6 +227,7 @@ export default function ReportsPage() {
             onChange={setEndDate}
             disabled={(date) => !!startDate && date < startDate}
             className="w-full sm:w-auto"
+            // placeholderText="End Date"
           />
           <Button 
             onClick={clearFilters} 
@@ -163,7 +247,7 @@ export default function ReportsPage() {
            { (startDate || endDate) && <CardDescription>Displaying transactions for the selected date range.</CardDescription> }
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 && !startDate && !endDate ? ( // Check if any filters active before showing "No transactions recorded"
+          {transactions.length === 0 && !startDate && !endDate ? (
              <div className="text-center py-12">
               <div className="mx-auto bg-secondary p-4 rounded-full w-fit mb-4">
                 <PackageSearch className="h-12 w-12 text-muted-foreground" />
