@@ -144,37 +144,55 @@ export default function ShopkeeperTransactionsPage() {
     }
 
     setIsGeneratingPdf(true);
+    const actionCardElement = reportElement.querySelector('.reports-card') as HTMLElement | null;
+    let originalDisplay = '';
+
+    if (actionCardElement) {
+        originalDisplay = actionCardElement.style.display;
+        actionCardElement.style.display = 'none';
+    }
+
     try {
+      // Ensure fonts and images are loaded if any, sometimes a small delay helps
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(reportElement, { 
-        scale: 2,
-        useCORS: true,
-        windowWidth: reportElement.scrollWidth,
-        windowHeight: reportElement.scrollHeight,
+        scale: 2, // Higher scale for better quality
+        useCORS: true, // If you have external images/resources
+        // Increase scroll region slightly to avoid cutoffs if content is near edge
+        windowWidth: reportElement.scrollWidth + 20, 
+        windowHeight: reportElement.scrollHeight + 20,
       });
       
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, mm, A4 page
       
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfPageHeight = pdf.internal.pageSize.getHeight();
       
+      // Calculate image height to maintain aspect ratio
       const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
       let heightLeft = imgHeight;
-      let position = 0;
+      let position = 0; // Top margin for the image on the PDF page
 
       pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
       heightLeft -= pdfPageHeight;
 
+      // Add more pages if content exceeds one page
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
+        position = heightLeft - imgHeight; // Recalculate position for the new page
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
         heightLeft -= pdfPageHeight;
       }
       
-      const fileName = shopkeeper.name.toLowerCase().replace(/\s+/g, '-') + '-transaction-report.pdf';
+      const fileName = `${shopkeeper.name.toLowerCase().replace(/\s+/g, '-')}-transaction-report.pdf`;
       pdf.save(fileName);
+      toast({
+        title: "PDF Generated",
+        description: `${fileName} has been downloaded.`,
+      });
 
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -184,18 +202,17 @@ export default function ShopkeeperTransactionsPage() {
         variant: "destructive",
       });
     } finally {
+      if (actionCardElement) {
+        actionCardElement.style.display = originalDisplay; // Restore display
+      }
       setIsGeneratingPdf(false);
     }
   };
 
   const handleShareWhatsApp = () => {
-    // First, trigger the PDF generation and save, then open WhatsApp.
-    // For simplicity, we'll just trigger the browser print for PDF saving for now.
-    // If direct download is preferred here too, this function would need to be async
-    // and call handleDirectPdfDownload, then open WhatsApp.
     window.print(); 
     setTimeout(() => {
-      const message = `Your transaction summary for ${shopkeeper.name} by JMD:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
+      const message = `Your transaction summary for ${shopkeeper.name} by JMD:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})\n\nPlease find the attached PDF for detailed transactions.`;
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     }, 1000); // Timeout to allow print dialog interaction
@@ -240,6 +257,36 @@ export default function ShopkeeperTransactionsPage() {
                 <span className="text-sm ml-1">({summary.balanceType})</span>
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Reports card is now inside printable-area but will be hidden by handleDirectPdfDownload */}
+        <Card className="shadow-lg reports-card hide-on-print">
+          <CardHeader>
+              <CardTitle className="text-xl">Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={handleDirectPdfDownload} 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                disabled={isGeneratingPdf}
+              >
+                  {isGeneratingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Export as PDF
+                    </>
+                  )}
+              </Button>
+              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
+                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
+              </Button>
           </CardContent>
         </Card>
         
@@ -323,36 +370,6 @@ export default function ShopkeeperTransactionsPage() {
           </CardContent>
         </Card>
       </div> {/* End of printable-area */}
-
-      {/* Reports card is now outside printable-area */}
-      <Card className="shadow-lg reports-card hide-on-print"> {/* Added hide-on-print for window.print() scenario */}
-          <CardHeader>
-              <CardTitle className="text-xl">Reports</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                onClick={handleDirectPdfDownload} 
-                variant="outline" 
-                className="w-full sm:w-auto"
-                disabled={isGeneratingPdf}
-              >
-                  {isGeneratingPdf ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Export as PDF
-                    </>
-                  )}
-              </Button>
-              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
-                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
-              </Button>
-          </CardContent>
-        </Card>
       
       <TransactionDialog
         isOpen={isTransactionDialogOpen}
