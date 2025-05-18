@@ -12,10 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TransactionDialog } from '@/components/dialogs/TransactionDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { DatePicker } from '@/components/ui/datepicker';
-import { PlusCircle, Edit3, Trash2, ArrowLeft, FileText, MessageSquare, ReceiptIndianRupee, XCircle, Filter, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, ArrowLeft, FileSpreadsheet, MessageSquare, ReceiptIndianRupee, XCircle, Filter, Loader2 } from 'lucide-react'; // Changed FileText to FileSpreadsheet
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 import { useToast } from "@/hooks/use-toast";
 
 export default function ShopkeeperTransactionsPage() {
@@ -35,7 +34,7 @@ export default function ShopkeeperTransactionsPage() {
   } = useData();
 
   const [isMounted, setIsMounted] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false); // Renamed from isGeneratingPdf
 
   useEffect(() => {
     setIsMounted(true);
@@ -131,91 +130,62 @@ export default function ShopkeeperTransactionsPage() {
     setEditingTransaction(null);
   };
 
-  const handleDirectPdfDownload = async () => {
-    const reportElement = document.querySelector('.printable-area') as HTMLElement;
-    if (!reportElement || !shopkeeper) {
-      console.error("Printable area or shopkeeper data not found");
+  const handleShopkeeperExcelExport = async () => {
+    if (!shopkeeper || displayedTransactions.length === 0) {
       toast({
-        title: "Error",
-        description: "Could not find content to export or shopkeeper details are missing.",
+        title: "No Data",
+        description: "There is no transaction data for this shopkeeper to export.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsGeneratingPdf(true);
-    const actionCardElement = reportElement.querySelector('.reports-card') as HTMLElement | null;
-    let originalDisplay = '';
-
-    if (actionCardElement) {
-        originalDisplay = actionCardElement.style.display;
-        actionCardElement.style.display = 'none';
-    }
-
+    setIsExportingExcel(true);
     try {
-      // Ensure fonts and images are loaded if any, sometimes a small delay helps
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const dataForSheet = displayedTransactions.map(t => ({
+        'Date': format(parseISO(t.date), "yyyy-MM-dd"),
+        'Goods Given (INR)': t.goodsGiven,
+        'Money Received (INR)': t.moneyReceived,
+      }));
 
-      const canvas = await html2canvas(reportElement, { 
-        scale: 2, // Higher scale for better quality
-        useCORS: true, // If you have external images/resources
-        // Increase scroll region slightly to avoid cutoffs if content is near edge
-        windowWidth: reportElement.scrollWidth + 20, 
-        windowHeight: reportElement.scrollHeight + 20,
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, mm, A4 page
-      
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfPageHeight = pdf.internal.pageSize.getHeight();
-      
-      // Calculate image height to maintain aspect ratio
-      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      let heightLeft = imgHeight;
-      let position = 0; // Top margin for the image on the PDF page
+      const worksheet = XLSX.utils.json_to_sheet(dataForSheet);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfPageHeight;
-
-      // Add more pages if content exceeds one page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight; // Recalculate position for the new page
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfPageHeight;
-      }
+      const columnWidths = [
+        { wch: 12 }, // Date
+        { wch: 20 }, // Goods Given
+        { wch: 22 }, // Money Received
+      ];
+      worksheet['!cols'] = columnWidths;
       
-      const fileName = `${shopkeeper.name.toLowerCase().replace(/\s+/g, '-')}-transaction-report.pdf`;
-      pdf.save(fileName);
+      const fileName = `${shopkeeper.name.toLowerCase().replace(/\s+/g, '-')}-transactions.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
       toast({
-        title: "PDF Generated",
+        title: "Excel Exported",
         description: `${fileName} has been downloaded.`,
       });
 
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error exporting Excel:", error);
       toast({
-        title: "Error Generating PDF",
-        description: "Could not generate PDF. Please try again or check the console for details.",
+        title: "Export Error",
+        description: "Could not export data to Excel. Please try again.",
         variant: "destructive",
       });
     } finally {
-      if (actionCardElement) {
-        actionCardElement.style.display = originalDisplay; // Restore display
-      }
-      setIsGeneratingPdf(false);
+      setIsExportingExcel(false);
     }
   };
 
   const handleShareWhatsApp = () => {
     window.print(); 
     setTimeout(() => {
-      const message = `Transaction Summary for ${shopkeeper.name} — Prepared by JMD: \nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
+      const message = `Your transaction summary by JMD:\nTotal Goods Given: ₹${summary.totalGoodsGiven.toFixed(2)}\nTotal Money Received: ₹${summary.totalMoneyReceived.toFixed(2)}\nBalance: ₹${summary.balanceAmount.toFixed(2)} (${summary.balanceType})`;
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
-    }, 1000); // Timeout to allow print dialog interaction
+    }, 1000); 
   };
 
   const clearFilters = () => {
@@ -229,7 +199,36 @@ export default function ShopkeeperTransactionsPage() {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Shopkeepers
       </Button>
 
-      <div className="printable-area space-y-6"> {/* Content to be printed/exported */}
+      <Card className="shadow-lg reports-card hide-on-print">
+          <CardHeader>
+              <CardTitle className="text-xl">Reports</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={handleShopkeeperExcelExport} 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                disabled={isExportingExcel}
+              >
+                  {isExportingExcel ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Exporting Excel...
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      Export as Excel
+                    </>
+                  )}
+              </Button>
+              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
+                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
+              </Button>
+          </CardContent>
+        </Card>
+
+      <div className="printable-area space-y-6"> 
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <h2 className="text-3xl font-semibold tracking-tight">Transactions for <span className="text-primary">{shopkeeper.name}</span></h2>
           <Button onClick={handleAddTransaction} className="shadow-md w-full sm:w-auto hide-on-print">
@@ -237,7 +236,7 @@ export default function ShopkeeperTransactionsPage() {
           </Button>
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg" data-pdf-hide="account-summary">
           <CardHeader>
             <CardTitle className="text-xl">Account Summary { (startDate || endDate) && <span className="text-sm font-normal text-muted-foreground">(Filtered)</span>}</CardTitle>
           </CardHeader>
@@ -259,41 +258,11 @@ export default function ShopkeeperTransactionsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Reports card is now inside printable-area but will be hidden by handleDirectPdfDownload */}
-        <Card className="shadow-lg reports-card hide-on-print">
-          <CardHeader>
-              <CardTitle className="text-xl">Reports</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                onClick={handleDirectPdfDownload} 
-                variant="outline" 
-                className="w-full sm:w-auto"
-                disabled={isGeneratingPdf}
-              >
-                  {isGeneratingPdf ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Export as PDF
-                    </>
-                  )}
-              </Button>
-              <Button onClick={handleShareWhatsApp} variant="outline" className="w-full sm:w-auto">
-                  <MessageSquare className="mr-2 h-4 w-4" /> Share via WhatsApp
-              </Button>
-          </CardContent>
-        </Card>
         
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl">Transaction History</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2 mt-4 items-center hide-on-print">
+            <div className="flex flex-col sm:flex-row gap-2 mt-4 items-center hide-on-print" data-pdf-hide="transaction-filters">
               <DatePicker
                 value={startDate}
                 onChange={setStartDate}
@@ -369,7 +338,7 @@ export default function ShopkeeperTransactionsPage() {
             )}
           </CardContent>
         </Card>
-      </div> {/* End of printable-area */}
+      </div> 
       
       <TransactionDialog
         isOpen={isTransactionDialogOpen}
@@ -389,3 +358,4 @@ export default function ShopkeeperTransactionsPage() {
   );
 }
 
+    
