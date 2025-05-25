@@ -21,7 +21,7 @@ import {
   SidebarMenuButton,
   SidebarFooter
 } from '@/components/ui/sidebar';
-import { Landmark, Home as HomeIcon, FileText as FileTextIcon, LogOut } from 'lucide-react';
+import { Landmark, Home as HomeIcon, FileText as FileTextIcon, LogOut, BarChart3 } from 'lucide-react'; // Added BarChart3
 import { useEffect } from 'react'; // Ensure useEffect is imported
 
 
@@ -89,6 +89,16 @@ export default function RootLayout({
                         <a>
                           <FileTextIcon />
                           Transaction report
+                        </a>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link href="/graph" legacyBehavior passHref>
+                      <SidebarMenuButton asChild>
+                        <a>
+                          <BarChart3 />
+                          GRAPH
                         </a>
                       </SidebarMenuButton>
                     </Link>
