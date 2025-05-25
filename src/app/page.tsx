@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin } from 'lucide-react'; // Added MapPin
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
@@ -91,7 +91,12 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h2 className="text-3xl font-semibold tracking-tight">Shopkeepers</h2>
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-3xl font-semibold tracking-tight">Shopkeepers</h2>
+          <span className="text-xl font-medium text-muted-foreground">
+            ({shopkeepers.length})
+          </span>
+        </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -119,7 +124,7 @@ export default function HomePage() {
             <CardTitle className="mt-4 text-2xl">No Shopkeepers Yet</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Click "Add Shopkeeper" to get started, or check your Supabase setup if you expect data.</p>
+            <p className="text-muted-foreground">Click "Add Shopkeeper" to get started.</p>
           </CardContent>
         </Card>
       ) : filteredShopkeepers.length === 0 ? (
@@ -155,7 +160,7 @@ export default function HomePage() {
                   </CardDescription>
                 )}
                  {shopkeeper.address && (
-                  <CardDescription className="flex items-start text-sm pt-1"> {/* items-start for multi-line address */}
+                  <CardDescription className="flex items-start text-sm pt-1">
                     <MapPin className="mr-2 h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" /> 
                     <span className="whitespace-pre-wrap">{shopkeeper.address}</span>
                   </CardDescription>
