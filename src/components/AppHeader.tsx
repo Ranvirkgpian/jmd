@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Landmark, LogOut, Menu, X } from 'lucide-react';
+import { Landmark, LogOut } from 'lucide-react'; // Removed Menu, X
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +12,7 @@ export function AppHeader() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Removed isMobileMenuOpen state
 
   useEffect(() => {
     setIsMounted(true);
@@ -21,7 +21,7 @@ export function AppHeader() {
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
-    setIsMobileMenuOpen(false);
+    // setIsMobileMenuOpen(false); // No longer needed
     router.push('/login');
     router.refresh();
   };
@@ -49,7 +49,7 @@ export function AppHeader() {
       >
         {/* Sidebar Trigger - Positioned to the top-left */}
         {isLoggedIn && (
-          <div className="absolute left-4 top-4"> {/* Changed positioning */}
+          <div className="absolute left-4 top-4">
             <SidebarTrigger className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground transition-colors duration-200" />
           </div>
         )}
@@ -79,7 +79,7 @@ export function AppHeader() {
           </div>
         )}
 
-        {/* Mobile menu button - Positioned to the right, vertically centered */}
+        {/* Mobile menu button - REMOVED
         {isLoggedIn && (
           <div className="md:hidden absolute right-4 top-1/2 -translate-y-1/2">
             <Button
@@ -93,9 +93,10 @@ export function AppHeader() {
             </Button>
           </div>
         )}
+        */}
       </motion.div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - REMOVED
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -124,6 +125,7 @@ export function AppHeader() {
           </motion.div>
         )}
       </AnimatePresence>
+      */}
     </header>
   );
 }
