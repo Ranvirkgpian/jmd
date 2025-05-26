@@ -10,8 +10,8 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"; // Ensure SheetTitle is imported
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -207,7 +207,8 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <SheetTitle className="sr-only">Site Navigation</SheetTitle>
+            {children}
           </SheetContent>
         </Sheet>
       )
@@ -272,14 +273,14 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn(className)} // Removed h-7 w-7
+      className={cn(className)} 
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <Menu /> {/* Changed from PanelLeft to Menu */}
+      <Menu /> 
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -762,7 +763,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
-
-    

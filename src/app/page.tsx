@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -10,8 +9,24 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin, Store } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
 export default function HomePage() {
   const { 
@@ -82,110 +97,178 @@ export default function HomePage() {
   if (!isMounted || loadingShopkeepers) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-muted-foreground">
-        <Loader2 className="h-12 w-12 animate-spin mb-4" />
-        <p className="text-lg">Loading shopkeepers...</p>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <Loader2 className="h-12 w-12 animate-spin mb-4 mx-auto" />
+          <p className="text-lg font-medium">Loading shopkeepers...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-3xl font-semibold tracking-tight">Shopkeepers</h2>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-8 px-4 sm:px-6 max-w-7xl mx-auto py-8"
+    >
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex items-baseline gap-3"
+        >
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Shopkeepers
+          </h2>
           <span className="text-xl font-medium text-muted-foreground">
             ({shopkeepers.length})
           </span>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        </motion.div>
+        <motion.div 
+          initial={{ x: 20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto"
+        >
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search shopkeepers..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="pl-9 shadow-sm w-full bg-secondary"
-              aria-label="Search shopkeepers"
+              className="pl-10 pr-4 h-11 w-full bg-background border-border/50 focus:border-primary shadow-sm hover:border-border transition-colors"
             />
           </div>
-          <Button onClick={handleAddShopkeeper} className="shadow-md w-full sm:w-auto">
+          <Button 
+            onClick={handleAddShopkeeper} 
+            className="h-11 shadow-md bg-primary hover:bg-primary/90 transition-colors duration-200"
+          >
             <PlusCircle className="mr-2 h-5 w-5" /> Add Shopkeeper
           </Button>
-        </div>
+        </motion.div>
       </div>
 
-      {shopkeepers.length === 0 && !searchQuery ? (
-        <Card className="text-center py-12 shadow-lg">
-          <CardHeader>
-            <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
-              <PackageSearch className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <CardTitle className="mt-4 text-2xl">No Shopkeepers Yet</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Click "Add Shopkeeper" to get started.</p>
-          </CardContent>
-        </Card>
-      ) : filteredShopkeepers.length === 0 ? (
-        <Card className="text-center py-12 shadow-lg">
-          <CardHeader>
-            <div className="mx-auto bg-secondary p-4 rounded-full w-fit">
-              <PackageSearch className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <CardTitle className="mt-4 text-2xl">No Shopkeepers Found</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              No shopkeepers match your search criteria. Try a different search or add a new shopkeeper.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...filteredShopkeepers] 
-            .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .map((shopkeeper) => (
-            <Card key={shopkeeper.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <AnimatePresence mode="wait">
+        {shopkeepers.length === 0 && !searchQuery ? (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="text-center py-16 shadow-lg border-dashed">
               <CardHeader>
-                <CardTitle className="text-xl">{shopkeeper.name}</CardTitle>
-                {shopkeeper.mobileNumber ? (
-                  <CardDescription className="flex items-center text-sm pt-1">
-                    <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {shopkeeper.mobileNumber}
-                  </CardDescription>
-                ) : (
-                  <CardDescription className="text-sm pt-1 italic text-muted-foreground/70">
-                    No mobile number
-                  </CardDescription>
-                )}
-                 {shopkeeper.address && (
-                  <CardDescription className="flex items-start text-sm pt-1">
-                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" /> 
-                    <span className="whitespace-pre-wrap">{shopkeeper.address}</span>
-                  </CardDescription>
-                )}
+                <div className="mx-auto bg-primary/10 p-6 rounded-full w-fit">
+                  <Store className="h-16 w-16 text-primary" />
+                </div>
+                <CardTitle className="mt-6 text-2xl font-bold">No Shopkeepers Yet</CardTitle>
+                <CardDescription className="mt-2 text-lg">
+                  Get started by adding your first shopkeeper
+                </CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow">
-                {/* Future content related to shopkeeper summary can go here */}
+              <CardContent>
+                <Button 
+                  onClick={handleAddShopkeeper}
+                  className="mt-4 bg-primary hover:bg-primary/90 transition-colors duration-200"
+                >
+                  <PlusCircle className="mr-2 h-5 w-5" /> Add Your First Shopkeeper
+                </Button>
               </CardContent>
-              <CardFooter className="flex justify-end space-x-2 border-t pt-4">
-                <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-none">
-                  <Link href={`/shopkeepers/${shopkeeper.id}`}>
-                    <Eye className="mr-2 h-4 w-4" /> View Transactions
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleEditShopkeeper(shopkeeper)} aria-label="Edit shopkeeper">
-                  <Edit3 className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDeleteShopkeeper(shopkeeper)} aria-label="Delete shopkeeper" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                  <Trash2 className="h-5 w-5" />
-                </Button>
-              </CardFooter>
             </Card>
-          ))}
-        </div>
-      )}
+          </motion.div>
+        ) : filteredShopkeepers.length === 0 ? (
+          <motion.div
+            key="no-results"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="text-center py-16 shadow-lg">
+              <CardHeader>
+                <div className="mx-auto bg-secondary p-6 rounded-full w-fit">
+                  <PackageSearch className="h-16 w-16 text-muted-foreground" />
+                </div>
+                <CardTitle className="mt-6 text-2xl">No Results Found</CardTitle>
+                <CardDescription className="mt-2 text-lg">
+                  Try adjusting your search or add a new shopkeeper
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {[...filteredShopkeepers]
+              .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .map((shopkeeper) => (
+                <motion.div key={shopkeeper.id} variants={item}>
+                  <Card className="group flex flex-col h-full shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-semibold group-hover:text-primary transition-colors">
+                        {shopkeeper.name}
+                      </CardTitle>
+                      {shopkeeper.mobileNumber && (
+                        <CardDescription className="flex items-center text-sm pt-2">
+                          <Phone className="mr-2 h-4 w-4 text-primary/70" />
+                          {shopkeeper.mobileNumber}
+                        </CardDescription>
+                      )}
+                      {shopkeeper.address && (
+                        <CardDescription className="flex items-start text-sm pt-2">
+                          <MapPin className="mr-2 h-4 w-4 text-primary/70 mt-0.5 flex-shrink-0" />
+                          <span className="whitespace-pre-wrap">{shopkeeper.address}</span>
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      {/* Future content */}
+                    </CardContent>
+                    <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild 
+                        className="flex-1 bg-background hover:bg-primary/5 transition-colors"
+                      >
+                        <Link href={`/shopkeepers/${shopkeeper.id}`}>
+                          <Eye className="mr-2 h-4 w-4" /> View Transactions
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleEditShopkeeper(shopkeeper)}
+                        className="hover:bg-primary/10 hover:text-primary transition-colors"
+                      >
+                        <Edit3 className="h-5 w-5" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteShopkeeper(shopkeeper)}
+                        className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ShopkeeperDialog
         isOpen={isShopkeeperDialogOpen}
@@ -201,6 +284,6 @@ export default function HomePage() {
         description={`Are you sure you want to delete ${shopkeeperToDelete?.name}? This action will also delete all associated transactions and cannot be undone.`}
         confirmButtonText="Delete"
       />
-    </div>
+    </motion.div>
   );
 }
