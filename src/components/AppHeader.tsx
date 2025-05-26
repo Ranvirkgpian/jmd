@@ -1,3 +1,4 @@
+
 "use client"; // Make AppHeader a client component for logout logic and conditional rendering
 
 import React, { useState, useEffect } from 'react';
@@ -41,31 +42,31 @@ export function AppHeader() {
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-50">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="container mx-auto px-4 py-4 flex items-center justify-between relative"
+        className="container mx-auto px-4 py-4 flex items-center justify-center relative"
       >
-        {/* Left section */}
-        <div className="flex items-center">
-          {isLoggedIn && (
-            <div className="hidden md:block mr-4">
-              <SidebarTrigger className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground transition-colors duration-200" />
-            </div>
-          )}
-          <motion.div 
-            className="flex items-center"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-          >
-            <Landmark className="h-8 w-8 mr-3" />
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight">JMD ENTERPRISES</h1>
-          </motion.div>
-        </div>
-
-        {/* Right section - Desktop */}
+        {/* Sidebar Trigger - Positioned to the top-left */}
         {isLoggedIn && (
-          <div className="hidden md:block">
+          <div className="absolute left-4 top-4"> {/* Changed positioning */}
+            <SidebarTrigger className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground transition-colors duration-200" />
+          </div>
+        )}
+
+        {/* Logo and Title - Centered by parent's justify-center */}
+        <motion.div
+          className="flex items-center"
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+        >
+          <Landmark className="h-8 w-8 mr-3" />
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">JMD ENTERPRISES</h1>
+        </motion.div>
+
+        {/* Logout Button - Positioned to the right, vertically centered */}
+        {isLoggedIn && (
+          <div className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2">
             <Button
               variant="ghost"
               size="sm"
@@ -78,9 +79,9 @@ export function AppHeader() {
           </div>
         )}
 
-        {/* Mobile menu button */}
+        {/* Mobile menu button - Positioned to the right, vertically centered */}
         {isLoggedIn && (
-          <div className="md:hidden">
+          <div className="md:hidden absolute right-4 top-1/2 -translate-y-1/2">
             <Button
               variant="ghost"
               size="sm"
@@ -105,7 +106,7 @@ export function AppHeader() {
           >
             <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
               <div className="flex items-center justify-center">
-                <SidebarTrigger 
+                <SidebarTrigger
                   className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground transition-colors duration-200"
                   onClick={() => setIsMobileMenuOpen(false)}
                 />
