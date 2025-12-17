@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -8,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DatePicker } from '@/components/ui/datepicker';
-import { TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileSpreadsheet, Loader2 } from 'lucide-react'; // Changed FileTextIcon to FileSpreadsheet
+import { TrendingUp, TrendingDown, ReceiptIndianRupee, PackageSearch, XCircle, Filter, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 
 interface EnrichedTransaction extends Transaction {
   shopkeeperName: string;
@@ -23,7 +23,7 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
-  const [isExportingExcel, setIsExportingExcel] = useState(false); // Renamed from isGeneratingPdf
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -82,10 +82,9 @@ export default function ReportsPage() {
 
     setIsExportingExcel(true);
     try {
-      // Prepare data for the Excel sheet
       const dataForSheet = filteredTransactions.map(t => ({
         'Shopkeeper Name': t.shopkeeperName,
-        'Date': format(parseISO(t.date), "yyyy-MM-dd"), // Consistent date format
+        'Date': format(parseISO(t.date), "yyyy-MM-dd"),
         'Goods Given (INR)': t.goodsGiven,
         'Money Received (INR)': t.moneyReceived,
       }));
@@ -94,12 +93,11 @@ export default function ReportsPage() {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
 
-      // Define column widths (optional, but improves readability)
       const columnWidths = [
-        { wch: 25 }, // Shopkeeper Name
-        { wch: 12 }, // Date
-        { wch: 20 }, // Goods Given
-        { wch: 22 }, // Money Received
+        { wch: 25 },
+        { wch: 12 },
+        { wch: 20 },
+        { wch: 22 },
       ];
       worksheet['!cols'] = columnWidths;
 
@@ -125,126 +123,152 @@ export default function ReportsPage() {
 
   if (!isMounted || loadingShopkeepers || loadingTransactions) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">Loading Report Data...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-base text-muted-foreground">Loading Report Data...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 printable-area">
-      <div data-pdf-hide="true" className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h2 className="text-3xl font-semibold tracking-tight">Overall Transaction Report</h2>
+    <div className="space-y-8 max-w-7xl mx-auto printable-area">
+      <div data-pdf-hide="true" className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Transaction Report</h2>
+          <p className="text-muted-foreground text-sm mt-1">Overview of all goods given and money received.</p>
+        </div>
         <Button 
-          onClick={handleExportExcel} // Changed from handleDirectPdfDownload
+          onClick={handleExportExcel}
           variant="outline" 
-          className="hide-on-print"
-          disabled={isExportingExcel} // Changed from isGeneratingPdf
+          className="hide-on-print shadow-sm hover:bg-primary/5 hover:text-primary transition-colors"
+          disabled={isExportingExcel}
         >
-          {isExportingExcel ? ( // Changed from isGeneratingPdf
+          {isExportingExcel ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Exporting Excel...
+              Exporting...
             </>
           ) : (
             <>
-              <FileSpreadsheet className="mr-2 h-4 w-4" /> {/* Changed Icon */}
-              Export as Excel
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export to Excel
             </>
           )}
         </Button>
       </div>
 
-      <div data-pdf-hide="true" className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="shadow-lg">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        data-pdf-hide="true"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
+        <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Goods Given</CardTitle>
-            <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{summary.totalGoodsGiven.toFixed(2)}</div>
-            { (startDate || endDate) && <p className="text-xs text-muted-foreground">Filtered data</p> }
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Money Received</CardTitle>
-            <TrendingDown className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{summary.totalMoneyReceived.toFixed(2)}</div>
-             { (startDate || endDate) && <p className="text-xs text-muted-foreground">Filtered data</p> }
-          </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
-            <ReceiptIndianRupee className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${summary.balance > 0 ? 'text-red-600' : summary.balance < 0 ? 'text-green-600' : ''}`}>
-              ₹{summary.balanceAmount.toFixed(2)}
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Goods Given</CardTitle>
+            <div className="bg-blue-100 p-2 rounded-full">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {summary.balanceType} { (startDate || endDate) && " (Filtered)" }
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">₹{summary.totalGoodsGiven.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            { (startDate || endDate) && <p className="text-xs text-muted-foreground mt-1">Filtered range</p> }
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Money Received</CardTitle>
+             <div className="bg-green-100 p-2 rounded-full">
+              <TrendingDown className="h-4 w-4 text-green-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">₹{summary.totalMoneyReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+             { (startDate || endDate) && <p className="text-xs text-muted-foreground mt-1">Filtered range</p> }
+          </CardContent>
+        </Card>
+
+        <Card className={`shadow-md hover:shadow-lg transition-shadow border-l-4 ${summary.balance > 0 ? 'border-l-red-500' : summary.balance < 0 ? 'border-l-green-500' : 'border-l-gray-400'}`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Net Balance</CardTitle>
+             <div className="bg-gray-100 p-2 rounded-full">
+               <ReceiptIndianRupee className="h-4 w-4 text-gray-600" />
+             </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${summary.balance > 0 ? 'text-red-600' : summary.balance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+              ₹{summary.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">
+              {summary.balanceType}
             </p>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
-      <Card data-pdf-hide="true" className="shadow-md hide-on-print">
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center">
-            <Filter className="mr-2 h-5 w-5" /> Filter Transactions
+      <Card data-pdf-hide="true" className="shadow-sm border-border/60 hide-on-print bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center font-medium">
+            <Filter className="mr-2 h-4 w-4 text-primary" /> Filter Transactions
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-          <DatePicker
-            value={startDate}
-            onChange={setStartDate}
-            className="w-full sm:w-auto"
-          />
-          <span className="text-muted-foreground">to</span>
-          <DatePicker
-            value={endDate}
-            onChange={setEndDate}
-            disabled={(date) => !!startDate && date < startDate}
-            className="w-full sm:w-auto"
-          />
+          <div className="w-full sm:w-auto">
+             <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              className="w-full"
+              placeholder="Start Date"
+            />
+          </div>
+          <span className="text-muted-foreground text-sm font-medium">to</span>
+          <div className="w-full sm:w-auto">
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              disabled={(date) => !!startDate && date < startDate}
+              className="w-full"
+               placeholder="End Date"
+            />
+          </div>
+
+          <div className="flex-grow" />
+
           <Button 
             onClick={clearFilters} 
             variant="ghost" 
             size="sm" 
             disabled={!startDate && !endDate}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
           >
             <XCircle className="mr-2 h-4 w-4" /> Clear Filters
           </Button>
         </CardContent>
       </Card>
       
-      <Card className="shadow-lg"> {/* This card WILL be in the PDF */}
-        <CardHeader>
-          <CardTitle className="text-xl">Detailed Transactions</CardTitle>
+      <Card className="shadow-md border-border/60 overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-4 border-b">
+          <CardTitle className="text-lg font-semibold">Detailed Transactions</CardTitle>
            { (startDate || endDate) && <CardDescription>Displaying transactions for the selected date range.</CardDescription> }
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {transactions.length === 0 && !startDate && !endDate ? (
-             <div className="text-center py-12">
-              <div className="mx-auto bg-secondary p-4 rounded-full w-fit mb-4">
-                <PackageSearch className="h-12 w-12 text-muted-foreground" />
+             <div className="text-center py-16 px-4">
+              <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
+                <PackageSearch className="h-10 w-10 text-muted-foreground" />
               </div>
-              <p className="text-xl font-semibold">No Transactions Recorded Yet</p>
-              <p className="text-muted-foreground">Once you add transactions, they will appear here.</p>
+              <p className="text-lg font-semibold">No Transactions Recorded Yet</p>
+              <p className="text-muted-foreground mt-1">Once you add transactions, they will appear here.</p>
             </div>
           ) : filteredTransactions.length === 0 ? (
-            <div className="text-center py-12">
-               <div className="mx-auto bg-secondary p-4 rounded-full w-fit mb-4">
-                 <PackageSearch className="h-12 w-12 text-muted-foreground" />
+            <div className="text-center py-16 px-4">
+               <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
+                 <PackageSearch className="h-10 w-10 text-muted-foreground" />
                </div>
-              <p className="text-xl font-semibold">No Transactions Found</p>
-              <p className="text-muted-foreground">
+              <p className="text-lg font-semibold">No Transactions Found</p>
+              <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
                 No transactions match your current filter criteria. Try adjusting or clearing the filters.
               </p>
             </div>
@@ -252,20 +276,20 @@ export default function ReportsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Shopkeeper</TableHead>
-                    <TableHead className="w-[120px]">Date</TableHead>
-                    <TableHead className="text-right w-[130px]">Goods Given</TableHead>
-                    <TableHead className="text-right w-[140px]">Money Received</TableHead>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold text-foreground">Shopkeeper</TableHead>
+                    <TableHead className="w-[150px] font-semibold text-foreground">Date</TableHead>
+                    <TableHead className="text-right w-[150px] font-semibold text-foreground">Goods Given</TableHead>
+                    <TableHead className="text-right w-[150px] font-semibold text-foreground">Money Received</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.shopkeeperName}</TableCell>
-                      <TableCell>{format(parseISO(transaction.date), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="text-right">₹{transaction.goodsGiven.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">₹{transaction.moneyReceived.toFixed(2)}</TableCell>
+                    <TableRow key={transaction.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="font-medium text-foreground">{transaction.shopkeeperName}</TableCell>
+                      <TableCell className="text-muted-foreground">{format(parseISO(transaction.date), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="text-right font-medium">₹{transaction.goodsGiven.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-medium text-green-600">₹{transaction.moneyReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
