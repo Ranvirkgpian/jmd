@@ -108,3 +108,4 @@ https://nextjs.org/telemetry
   digest: '537884009'
 }
  GET /login 500 in 585ms
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. Please report the content of /tmp/next-panic-7e57b62ff9e5310eb034d3cc77886041.log, along with a description of what you were doing when the error occurred, to https://github.com/vercel/next.js/issues/new?template=1.bug_report.yml
