@@ -75,10 +75,10 @@ export default function GraphPage() {
         chartLabel = `Goods Given from ${format(filterStartDate, 'MMM yyyy')} to ${format(filterEndDate, 'MMM yyyy')}`;
         chartDescription = `Displaying total goods given per month for the selected period.`;
     } else {
-        intervalStart = subMonths(startOfMonth(now), 11);
+        intervalStart = subMonths(startOfMonth(now), 2);
         intervalEnd = startOfMonth(now);
-        chartLabel = "Goods Given Over Last 12 Months";
-        chartDescription = "This chart displays the total value of goods given each month for the past year.";
+        chartLabel = "Goods Given Over Last 3 Months";
+        chartDescription = "This chart displays the total value of goods given each month for the past 3 months.";
     }
     
     let monthsInInterval: Date[] = [];
@@ -250,7 +250,7 @@ export default function GraphPage() {
                 <p className="text-muted-foreground mt-1 max-w-sm">
                   {(filterStartDate || filterEndDate)
                     ? "There are no transactions recorded for the selected period."
-                    : "There are no transactions recorded in the last 12 months."
+                    : "There are no transactions recorded in the last 3 months."
                   }
                 </p>
               </div>
@@ -261,7 +261,7 @@ export default function GraphPage() {
               Showing total goods given per month.
               {(filterStartDate && filterEndDate)
                 ? ` Data range: ${format(filterStartDate, 'MMM d, yyyy')} - ${format(filterEndDate, 'MMM d, yyyy')}.`
-                : " Data range: Last 12 months."
+                : " Data range: Last 3 months."
               }
             </div>
           </CardFooter>

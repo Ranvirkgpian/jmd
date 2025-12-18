@@ -2,109 +2,18 @@
 > nextn@0.1.0 dev
 > next dev --turbopack -p 9002
 
-   ▲ Next.js 15.2.3 (Turbopack)
+   ▲ Next.js 15.5.9 (Turbopack)
    - Local:        http://localhost:9002
    - Network:      http://192.168.0.2:9002
 
  ✓ Starting...
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
-
- ✓ Ready in 1383ms
- ○ Compiling /login ...
- ✓ Compiled /login in 7.1s
-[TypeError: Cannot assign to read only property 'Component' of object '#<Object>']
- ⨯ unhandledRejection: [TypeError: Cannot assign to read only property 'Component' of object '#<Object>']
- ⨯ unhandledRejection:  [TypeError: Cannot assign to read only property 'Component' of object '#<Object>']
- ⨯ Error: Supabase URL and Anon Key must be defined in .env.local
-    at [project]/src/lib/supabaseClient.ts [app-ssr] (ecmascript) (src/lib/supabaseClient.ts:9:8)
-    at [project]/src/contexts/DataContext.tsx [app-ssr] (ecmascript) (src/contexts/DataContext.tsx:6:0)
-    at [project]/src/app/layout.tsx [app-ssr] (ecmascript) (src/app/layout.tsx:5:0)
-   7 |
-   8 | if (!supabaseUrl || !supabaseAnonKey) {
->  9 |   throw new Error('Supabase URL and Anon Key must be defined in .env.local');
-     |        ^
-  10 | }
-  11 |
-  12 | export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey); {
-  digest: '537884009'
-}
- GET /login 500 in 10310ms
- ⨯ Error: Supabase URL and Anon Key must be defined in .env.local
-    at [project]/src/lib/supabaseClient.ts [app-ssr] (ecmascript) (src/lib/supabaseClient.ts:9:8)
-    at [project]/src/contexts/DataContext.tsx [app-ssr] (ecmascript) (src/contexts/DataContext.tsx:6:0)
-    at [project]/src/app/layout.tsx [app-ssr] (ecmascript) (src/app/layout.tsx:5:0)
-   7 |
-   8 | if (!supabaseUrl || !supabaseAnonKey) {
->  9 |   throw new Error('Supabase URL and Anon Key must be defined in .env.local');
-     |        ^
-  10 | }
-  11 |
-  12 | export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey); {
-  digest: '537884009'
-}
- GET /login 500 in 572ms
- ⨯ Error: Supabase URL and Anon Key must be defined in .env.local
-    at [project]/src/lib/supabaseClient.ts [app-ssr] (ecmascript) (src/lib/supabaseClient.ts:9:8)
-    at [project]/src/contexts/DataContext.tsx [app-ssr] (ecmascript) (src/contexts/DataContext.tsx:6:0)
-    at [project]/src/app/layout.tsx [app-ssr] (ecmascript) (src/app/layout.tsx:5:0)
-   7 |
-   8 | if (!supabaseUrl || !supabaseAnonKey) {
->  9 |   throw new Error('Supabase URL and Anon Key must be defined in .env.local');
-     |        ^
-  10 | }
-  11 |
-  12 | export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey); {
-  digest: '537884009'
-}
- GET /login 500 in 562ms
- GET /login 200 in 489ms
+ ✓ Ready in 1479ms
  ○ Compiling / ...
- ✓ Compiled / in 2.6s
- GET / 200 in 2653ms
- GET / 200 in 99ms
- GET /login 200 in 109ms
- GET / 200 in 81ms
- GET / 200 in 86ms
- GET /login 200 in 103ms
- GET / 200 in 65ms
- GET / 200 in 82ms
- ○ Compiling /reports ...
- ✓ Compiled /reports in 4.6s
- GET /reports 200 in 4870ms
+ ✓ Compiled / in 9.2s
+ GET / 200 in 10590ms
+ ○ Compiling /recycle-bin ...
+ ✓ Compiled /recycle-bin in 1272ms
+ GET /recycle-bin 200 in 1527ms
  ○ Compiling /graph ...
- ✓ Compiled /graph in 5.9s
- GET /graph 200 in 6269ms
-[TypeError: Cannot assign to read only property 'Component' of object '#<Object>']
- ⨯ unhandledRejection: [TypeError: Cannot assign to read only property 'Component' of object '#<Object>']
- ⨯ unhandledRejection:  [TypeError: Cannot assign to read only property 'Component' of object '#<Object>']
- ⨯ Error: Supabase URL and Anon Key must be defined in .env.local
-    at [project]/src/lib/supabaseClient.ts [app-ssr] (ecmascript) (src/lib/supabaseClient.ts:9:8)
-    at [project]/src/contexts/DataContext.tsx [app-ssr] (ecmascript) (src/contexts/DataContext.tsx:6:0)
-    at [project]/src/app/layout.tsx [app-ssr] (ecmascript) (src/app/layout.tsx:5:0)
-   7 |
-   8 | if (!supabaseUrl || !supabaseAnonKey) {
->  9 |   throw new Error('Supabase URL and Anon Key must be defined in .env.local');
-     |        ^
-  10 | }
-  11 |
-  12 | export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey); {
-  digest: '537884009'
-}
- GET /login 500 in 3934ms
- ⨯ Error: Supabase URL and Anon Key must be defined in .env.local
-    at [project]/src/lib/supabaseClient.ts [app-ssr] (ecmascript) (src/lib/supabaseClient.ts:9:8)
-    at [project]/src/contexts/DataContext.tsx [app-ssr] (ecmascript) (src/contexts/DataContext.tsx:6:0)
-    at [project]/src/app/layout.tsx [app-ssr] (ecmascript) (src/app/layout.tsx:5:0)
-   7 |
-   8 | if (!supabaseUrl || !supabaseAnonKey) {
->  9 |   throw new Error('Supabase URL and Anon Key must be defined in .env.local');
-     |        ^
-  10 | }
-  11 |
-  12 | export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey); {
-  digest: '537884009'
-}
- GET /login 500 in 585ms
+ ✓ Compiled /graph in 5.2s
+ GET /graph 200 in 5652ms

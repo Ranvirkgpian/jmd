@@ -37,6 +37,7 @@ export function AppHeader() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/reports', label: 'Transactions', icon: FileText },
     { href: '/graph', label: 'Graph', icon: BarChart3 },
+    { href: '/recycle-bin', label: 'Recycle Bin', icon: (props: any) => <LogOut {...props} style={{ transform: 'rotate(180deg)' }} /> }, // Temporary icon hack or use Trash2 if imported
   ];
 
   if (!isMounted) {
