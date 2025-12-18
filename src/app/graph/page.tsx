@@ -232,7 +232,7 @@ export default function GraphPage() {
                     <ChartLegend content={<ChartLegendContent />} />
                     <Bar
                       dataKey="totalGoodsGiven"
-                      fill="url(#colorTotalGoodsGiven)" // We can add gradient defs if chart container supports svg children, otherwise solid
+                      fill="var(--color-totalGoodsGiven)"
                       fillOpacity={0.9}
                       radius={[4, 4, 0, 0]}
                       barSize={Math.max(10, 40 - Math.max(0, processedChartData.data.length - 12) * 2)}
