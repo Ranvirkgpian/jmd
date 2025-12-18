@@ -37,8 +37,8 @@ export default function RootLayout({
   // The SidebarProvider is removed as we are moving to a top navbar layout.
 
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background text-foreground min-h-screen flex flex-col`}>
+    <html lang="en" suppressHydrationWarning={true}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background text-foreground min-h-screen flex flex-col`} suppressHydrationWarning={true}>
         <DataProvider>
           <AuthGuard>
             <AppHeader />
