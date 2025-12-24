@@ -6,7 +6,7 @@ import { useData } from '@/contexts/DataContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardFooter, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, MapPin, Trash2, Undo2, AlertTriangle, Calendar, ArrowUpRight, ArrowDownLeft, Store } from 'lucide-react';
+import { Phone, MapPin, Trash2, Undo2, AlertTriangle, Calendar, ArrowUpRight, ArrowDownLeft, Store, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
@@ -18,25 +18,29 @@ export default function RecycleBinPage() {
   const {
     deletedShopkeepers,
     deletedTransactions,
+    deletedProducts,
     restoreShopkeeper,
     permanentlyDeleteShopkeeper,
     restoreTransaction,
     permanentlyDeleteTransaction,
+    restoreProduct,
+    permanentlyDeleteProduct,
     loadingShopkeepers,
     loadingTransactions,
+    loadingProducts,
     getShopkeeperById,
     shopkeepers // We might need active shopkeepers if we are showing a deleted transaction for an active shopkeeper
   } = useData();
 
   const [isMounted, setIsMounted] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteType, setDeleteType] = useState<'shopkeeper' | 'transaction' | null>(null);
+  const [deleteType, setDeleteType] = useState<'shopkeeper' | 'transaction' | 'product' | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted || loadingShopkeepers || loadingTransactions) {
+  if (!isMounted || loadingShopkeepers || loadingTransactions || loadingProducts) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-muted-foreground">
         <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
@@ -45,7 +49,7 @@ export default function RecycleBinPage() {
     );
   }
 
-  const handleDeleteClick = (id: string, type: 'shopkeeper' | 'transaction') => {
+  const handleDeleteClick = (id: string, type: 'shopkeeper' | 'transaction' | 'product') => {
     setDeleteId(id);
     setDeleteType(type);
   };
@@ -54,8 +58,10 @@ export default function RecycleBinPage() {
     if (deleteId && deleteType) {
       if (deleteType === 'shopkeeper') {
         await permanentlyDeleteShopkeeper(deleteId);
-      } else {
+      } else if (deleteType === 'transaction') {
         await permanentlyDeleteTransaction(deleteId);
+      } else if (deleteType === 'product') {
+        await permanentlyDeleteProduct(deleteId);
       }
       setDeleteId(null);
       setDeleteType(null);
@@ -75,9 +81,10 @@ export default function RecycleBinPage() {
       </div>
 
       <Tabs defaultValue="shopkeepers" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
           <TabsTrigger value="shopkeepers">Shopkeepers ({deletedShopkeepers.length})</TabsTrigger>
           <TabsTrigger value="transactions">Transactions ({deletedTransactions.length})</TabsTrigger>
+          <TabsTrigger value="products">Products ({deletedProducts.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="shopkeepers" className="mt-6">
@@ -296,6 +303,80 @@ export default function RecycleBinPage() {
               </div>
             )}
            </AnimatePresence>
+        </TabsContent>
+
+        <TabsContent value="products" className="mt-6">
+          <AnimatePresence mode="popLayout">
+            {deletedProducts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/10 rounded-lg border border-dashed"
+              >
+                <div className="p-4 bg-muted rounded-full mb-3">
+                  <Package className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p>No deleted products found.</p>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {deletedProducts.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Card className="flex flex-col h-full border-border/60 shadow-sm hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3 bg-muted/50 border-b border-border/10">
+                        <CardTitle className="text-lg font-bold flex justify-between items-start">
+                          <span className="line-clamp-1 text-foreground/80">{product.name}</span>
+                          {product.deleted_at && (
+                             <span className="text-xs font-normal text-red-500 bg-red-500/10 px-2 py-1 rounded-full border border-red-500/20 whitespace-nowrap ml-2">
+                               Deleted {format(parseISO(product.deleted_at), 'MMM d')}
+                             </span>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-grow pt-4">
+                        <div className="rounded-md border p-3 bg-background/50 space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Cost Price</span>
+                                <span className="font-medium">₹{product.cost_price?.toFixed(2) ?? '0.00'}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Selling Price</span>
+                                <span className="font-medium">₹{product.selling_price?.toFixed(2) ?? '0.00'}</span>
+                            </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-4 border-t bg-muted/5 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                          onClick={() => restoreProduct(product.id)}
+                        >
+                          <Undo2 className="mr-2 h-4 w-4" /> Restore
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1 hover:bg-red-600 shadow-sm"
+                          onClick={() => handleDeleteClick(product.id, 'product')}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
         </TabsContent>
       </Tabs>
 

@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Shopkeeper, Transaction, DataContextType } from '@/lib/types';
+import type { Shopkeeper, Transaction, Product, DataContextType } from '@/lib/types';
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
@@ -15,19 +15,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Active Data
   const [shopkeepers, setShopkeepers] = useState<Shopkeeper[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   // Deleted Data
   const [deletedShopkeepers, setDeletedShopkeepers] = useState<Shopkeeper[]>([]);
   const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
+  const [deletedProducts, setDeletedProducts] = useState<Product[]>([]);
 
   const [loadingShopkeepers, setLoadingShopkeepers] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   // Fetch initial data from Supabase
   useEffect(() => {
     const fetchData = async () => {
       setLoadingShopkeepers(true);
       setLoadingTransactions(true);
+      setLoadingProducts(true);
 
       // --- Fetch Shopkeepers ---
       const { data: shopkeepersData, error: shopkeepersError } = await supabase
@@ -74,6 +78,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setDeletedTransactions(allTransactions.filter(t => t.deleted_at));
       }
       setLoadingTransactions(false);
+
+      // --- Fetch Products ---
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (productsError) {
+        // If the table doesn't exist yet, this will error.
+        // We log it but don't break the app.
+        if (productsError.code !== '42P01') { // 42P01 is relation does not exist
+             console.error('Error fetching products:', productsError);
+             toast({
+               title: "Error Fetching Products",
+               description: `Could not fetch products. ${productsError.message}`,
+               variant: "destructive"
+             });
+        }
+        setProducts([]);
+        setDeletedProducts([]);
+      } else {
+        const allProducts = (productsData as Product[]) || [];
+        // Separate active and deleted
+        setProducts(allProducts.filter(p => !p.deleted_at));
+        setDeletedProducts(allProducts.filter(p => p.deleted_at));
+      }
+      setLoadingProducts(false);
     };
     fetchData();
   }, [toast]);
@@ -81,7 +112,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- Lazy Cleanup Logic (Auto-delete > 45 days) ---
   useEffect(() => {
     const cleanupOldData = async () => {
-      if (loadingShopkeepers || loadingTransactions) return;
+      if (loadingShopkeepers || loadingTransactions || loadingProducts) return;
 
       const now = new Date();
       const thresholdDays = 45;
@@ -100,6 +131,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return differenceInDays(now, deletedDate) > thresholdDays;
       });
 
+       // Identify old deleted products
+      const oldProducts = deletedProducts.filter(p => {
+        if (!p.deleted_at) return false;
+        const deletedDate = parseISO(p.deleted_at);
+        return differenceInDays(now, deletedDate) > thresholdDays;
+      });
+
       // Perform deletion
       if (oldShopkeepers.length > 0) {
         console.log(`Cleaning up ${oldShopkeepers.length} old shopkeepers...`);
@@ -114,13 +152,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await permanentlyDeleteTransaction(t.id);
         }
       }
+
+      if (oldProducts.length > 0) {
+        console.log(`Cleaning up ${oldProducts.length} old products...`);
+        for (const p of oldProducts) {
+          await permanentlyDeleteProduct(p.id);
+        }
+      }
     };
 
     // Run cleanup once data is loaded
-    if (!loadingShopkeepers && !loadingTransactions) {
+    if (!loadingShopkeepers && !loadingTransactions && !loadingProducts) {
       cleanupOldData();
     }
-  }, [loadingShopkeepers, loadingTransactions, deletedShopkeepers, deletedTransactions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadingShopkeepers, loadingTransactions, loadingProducts, deletedShopkeepers, deletedTransactions, deletedProducts]);
 
 
   // --- Shopkeeper Actions ---
@@ -188,11 +233,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setShopkeepers(prev => prev.filter(s => s.id !== id));
       // Add to deleted
       setDeletedShopkeepers(prev => [softDeletedShopkeeper as Shopkeeper, ...prev]);
-
-      // Also soft delete associated transactions locally for consistency
-      // In a real app, you might want to soft delete them in DB too, or rely on a cascade if DB supports it.
-      // But for Soft Delete, DB Cascade usually deletes permanently.
-      // So we should probably soft-delete all transactions for this shopkeeper manually.
 
       // Let's soft delete associated transactions
       const { error: transError } = await supabase
@@ -388,6 +428,104 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getTransactionsByShopkeeper = (shopkeeperId: string) => {
     return transactions.filter(t => t.shopkeeperId === shopkeeperId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
+
+  // --- Product Actions ---
+
+  const addProduct = async (product: Omit<Product, 'id' | 'created_at' | 'deleted_at'>) => {
+    const { data: newProduct, error } = await supabase
+      .from('products')
+      .insert([product])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding product:', error);
+      toast({
+        title: "Error Adding Product",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else if (newProduct) {
+      setProducts(prev => [newProduct as Product, ...prev].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      toast({ title: "Success", description: "Product added." });
+    }
+  };
+
+  const updateProduct = async (id: string, updates: Partial<Omit<Product, 'id' | 'created_at'>>) => {
+    const { data: updatedProduct, error } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Error Updating Product",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else if (updatedProduct) {
+      setProducts(prev => prev.map(p => p.id === id ? (updatedProduct as Product) : p));
+      toast({ title: "Success", description: "Product updated." });
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    const deletedAt = new Date().toISOString();
+    const { data: softDeletedProduct, error } = await supabase
+      .from('products')
+      .update({ deleted_at: deletedAt })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error Deleting Product",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else if (softDeletedProduct) {
+      setProducts(prev => prev.filter(p => p.id !== id));
+      setDeletedProducts(prev => [softDeletedProduct as Product, ...prev]);
+      toast({ title: "Success", description: "Product moved to Recycle Bin." });
+    }
+  };
+
+  const restoreProduct = async (id: string) => {
+    const { data: restoredProduct, error } = await supabase
+      .from('products')
+      .update({ deleted_at: null })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      toast({ title: "Error", description: "Could not restore product.", variant: "destructive" });
+    } else if (restoredProduct) {
+      setDeletedProducts(prev => prev.filter(p => p.id !== id));
+      setProducts(prev => [restoredProduct as Product, ...prev].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      toast({ title: "Success", description: "Product restored." });
+    }
+  };
+
+  const permanentlyDeleteProduct = async (id: string) => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error permanently deleting product:', error);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setDeletedProducts(prev => prev.filter(p => p.id !== id));
+      toast({ title: "Success", description: "Product permanently deleted." });
+    }
+  };
   
   const contextValue = useMemo(() => ({
     shopkeepers,
@@ -412,10 +550,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     deletedTransactions,
     restoreTransaction,
     permanentlyDeleteTransaction,
+
+    products,
+    loadingProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+
+    deletedProducts,
+    restoreProduct,
+    permanentlyDeleteProduct
   }), [
     shopkeepers, loadingShopkeepers, deletedShopkeepers,
-    transactions, loadingTransactions, deletedTransactions
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+    transactions, loadingTransactions, deletedTransactions,
+    products, loadingProducts, deletedProducts
+  ]);
 
   return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>;
 }
