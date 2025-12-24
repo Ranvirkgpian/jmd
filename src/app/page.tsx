@@ -120,8 +120,11 @@ export default function HomePage() {
           transition={{ duration: 0.4 }}
           className="space-y-1"
         >
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             Shopkeepers
+             <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                {shopkeepers.length}
+             </span>
           </h2>
           <p className="text-muted-foreground text-sm">
             Manage your shopkeepers and view their transaction history.

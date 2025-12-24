@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Landmark, Menu, X, LogOut, Home, FileText, BarChart3, Receipt, Package } from 'lucide-react';
+import { Landmark, Menu, X, LogOut, Home, FileText, BarChart3, Receipt, Package, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -39,7 +39,7 @@ export function AppHeader() {
     { href: '/transaction-summary', label: 'Summary', icon: Receipt },
     { href: '/reports', label: 'Transactions', icon: FileText },
     { href: '/graph', label: 'Graph', icon: BarChart3 },
-    { href: '/recycle-bin', label: 'Recycle Bin', icon: (props: any) => <LogOut {...props} style={{ transform: 'rotate(180deg)' }} /> }, // Temporary icon hack or use Trash2 if imported
+    { href: '/recycle-bin', label: 'Recycle Bin', icon: Trash2 },
   ];
 
   if (!isMounted) {
