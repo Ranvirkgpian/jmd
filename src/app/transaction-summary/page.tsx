@@ -50,7 +50,7 @@ export default function TransactionSummaryPage() {
         totalMoneyReceived: totals.received,
         dueAmount
       };
-    });
+    }).sort((a, b) => b.dueAmount - a.dueAmount);
   }, [shopkeepers, transactions, loadingShopkeepers, loadingTransactions]);
 
   const filteredData = useMemo(() => {

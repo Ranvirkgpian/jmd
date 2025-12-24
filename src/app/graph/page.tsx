@@ -2,7 +2,10 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import {
+  Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer,
+  Line, LineChart, Pie, PieChart, Cell
+} from 'recharts';
 import {
   Card,
   CardContent,
@@ -28,12 +31,14 @@ import { motion } from 'framer-motion';
 interface MonthlyData {
   month: string;
   totalGoodsGiven: number;
+  fill?: string;
 }
 
 interface ProcessedChartData {
   data: MonthlyData[];
   label: string;
   description: string;
+  pieConfig: ChartConfig;
 }
 
 const chartConfig = {
@@ -58,7 +63,8 @@ export default function GraphPage() {
       return { 
         data: [], 
         label: "Monthly Goods Given Analysis", 
-        description: "Loading graph data..." 
+        description: "Loading graph data...",
+        pieConfig: {}
       };
     }
 
@@ -115,15 +121,30 @@ export default function GraphPage() {
       }
     });
     
-    const chartData = monthsInInterval.map(monthDate => {
+    const pieConfig: ChartConfig = {
+      totalGoodsGiven: {
+        label: "Goods Given",
+      },
+    };
+
+    const chartData = monthsInInterval.map((monthDate, index) => {
       const monthKey = format(monthDate, 'MMM yyyy');
+      const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`;
+
+      // Populate pieConfig dynamically
+      pieConfig[monthKey] = {
+        label: monthKey,
+        color: colorVar,
+      };
+
       return {
         month: monthKey,
         totalGoodsGiven: dataByMonth[monthKey] || 0,
+        fill: colorVar,
       };
     });
 
-    return { data: chartData, label: chartLabel, description: chartDescription };
+    return { data: chartData, label: chartLabel, description: chartDescription, pieConfig };
 
   }, [transactions, loadingTransactions, isMounted, filterStartDate, filterEndDate]);
 
@@ -192,10 +213,12 @@ export default function GraphPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="space-y-8"
       >
+        {/* Bar Chart */}
         <Card className="shadow-lg border-border/60">
           <CardHeader>
-            <CardTitle>{processedChartData.label}</CardTitle>
+            <CardTitle>Bar Chart - {processedChartData.label}</CardTitle>
             <CardDescription>
               {processedChartData.description}
             </CardDescription>
@@ -237,23 +260,106 @@ export default function GraphPage() {
                       radius={[4, 4, 0, 0]}
                       barSize={Math.max(10, 40 - Math.max(0, processedChartData.data.length - 12) * 2)}
                     />
-                     {/* Gradient Defs Hack for Recharts if handled by ChartContainer or we could add defs inside bar chart */}
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
-                  <PackageSearch className="h-10 w-10 text-muted-foreground" />
-                </div>
-                <p className="text-lg font-semibold">No Transaction Data Available</p>
-                <p className="text-muted-foreground mt-1 max-w-sm">
-                  {(filterStartDate || filterEndDate)
-                    ? "There are no transactions recorded for the selected period."
-                    : "There are no transactions recorded in the last 3 months."
-                  }
-                </p>
-              </div>
+              <NoDataState filterActive={!!(filterStartDate || filterEndDate)} />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Line Chart */}
+        <Card className="shadow-lg border-border/60">
+          <CardHeader>
+            <CardTitle>Line Chart - {processedChartData.label}</CardTitle>
+            <CardDescription>
+               Trend of goods given over the selected period.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {hasData ? (
+              <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={processedChartData.data} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/0.2)" />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={12}
+                      padding={{ left: 10, right: 10 }}
+                      interval={processedChartData.data.length > 12 ? Math.floor(processedChartData.data.length / 12) : 0}
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <YAxis
+                      tickFormatter={(value) => `₹${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={12}
+                      width={60}
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <ChartTooltip
+                      cursor={{ stroke: 'hsl(var(--muted-foreground))' }}
+                      content={<ChartTooltipContent indicator="line" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
+                    />
+                    <ChartLegend content={<ChartLegendContent />} />
+                    <Line
+                      type="monotone"
+                      dataKey="totalGoodsGiven"
+                      stroke="var(--color-totalGoodsGiven)"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "var(--color-totalGoodsGiven)" }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <NoDataState filterActive={!!(filterStartDate || filterEndDate)} />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pie Chart */}
+        <Card className="shadow-lg border-border/60">
+          <CardHeader>
+            <CardTitle>Pie Chart - Monthly Contribution</CardTitle>
+            <CardDescription>
+              Proportion of goods given by month.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {hasData ? (
+              <ChartContainer config={processedChartData.pieConfig} className="min-h-[350px] w-full mx-auto">
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel nameKey="month" indicator="dot" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
+                    />
+                    <Pie
+                      data={processedChartData.data}
+                      dataKey="totalGoodsGiven"
+                      nameKey="month"
+                      innerRadius={60}
+                      outerRadius={120}
+                      strokeWidth={2}
+                      paddingAngle={2}
+                    >
+                      {processedChartData.data.map((entry, index) => (
+                         <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartLegend content={<ChartLegendContent nameKey="month" />} className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <NoDataState filterActive={!!(filterStartDate || filterEndDate)} />
             )}
           </CardContent>
           <CardFooter className="flex-col items-start gap-2 text-sm border-t pt-4 bg-muted/10">
@@ -267,6 +373,23 @@ export default function GraphPage() {
           </CardFooter>
         </Card>
       </motion.div>
+    </div>
+  );
+}
+
+function NoDataState({ filterActive }: { filterActive: boolean }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
+        <PackageSearch className="h-10 w-10 text-muted-foreground" />
+      </div>
+      <p className="text-lg font-semibold">No Transaction Data Available</p>
+      <p className="text-muted-foreground mt-1 max-w-sm">
+        {filterActive
+          ? "There are no transactions recorded for the selected period."
+          : "There are no transactions recorded in the last 3 months."
+        }
+      </p>
     </div>
   );
 }
