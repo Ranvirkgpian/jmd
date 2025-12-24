@@ -18,6 +18,15 @@ export interface Transaction {
   deleted_at?: string | null; // For soft delete
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  cost_price: number;
+  selling_price: number;
+  created_at: string;
+  deleted_at?: string | null;
+}
+
 export interface DataContextType {
   shopkeepers: Shopkeeper[]; // Active shopkeepers
   loadingShopkeepers: boolean;
@@ -43,6 +52,18 @@ export interface DataContextType {
   deletedTransactions: Transaction[];
   restoreTransaction: (id: string) => Promise<void>;
   permanentlyDeleteTransaction: (id: string) => Promise<void>;
+
+  // Products
+  products: Product[];
+  loadingProducts: boolean;
+  addProduct: (product: Omit<Product, 'id' | 'created_at' | 'deleted_at'>) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Omit<Product, 'id' | 'created_at'>>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>; // Soft delete
+
+  // Recycle Bin / Soft Delete for Products
+  deletedProducts: Product[];
+  restoreProduct: (id: string) => Promise<void>;
+  permanentlyDeleteProduct: (id: string) => Promise<void>;
 }
 
 // Placeholder for Supabase generated types. 
@@ -101,6 +122,32 @@ export interface Database {
           date?: string;
           goodsGiven?: number;
           moneyReceived?: number;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+      };
+      products: {
+        Row: {
+          id: string;
+          name: string;
+          cost_price: number;
+          selling_price: number;
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          cost_price: number;
+          selling_price: number;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          cost_price?: number;
+          selling_price?: number;
           created_at?: string;
           deleted_at?: string | null;
         };
