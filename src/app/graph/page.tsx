@@ -34,8 +34,15 @@ interface MonthlyData {
   fill?: string;
 }
 
+interface TopShopkeeperData {
+  name: string;
+  totalGoodsGiven: number;
+  fill: string;
+}
+
 interface ProcessedChartData {
-  data: MonthlyData[];
+  monthlyData: MonthlyData[];
+  topShopkeepersData: TopShopkeeperData[];
   label: string;
   description: string;
   pieConfig: ChartConfig;
@@ -49,7 +56,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function GraphPage() {
-  const { transactions, loadingTransactions } = useData();
+  const { transactions, loadingTransactions, shopkeepers } = useData();
   const [isMounted, setIsMounted] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState<Date | undefined>(undefined);
   const [filterEndDate, setFilterEndDate] = useState<Date | undefined>(undefined);
@@ -61,7 +68,8 @@ export default function GraphPage() {
   const processedChartData: ProcessedChartData = useMemo(() => {
     if (loadingTransactions || !isMounted) {
       return { 
-        data: [], 
+        monthlyData: [],
+        topShopkeepersData: [],
         label: "Monthly Goods Given Analysis", 
         description: "Loading graph data...",
         pieConfig: {}
@@ -110,6 +118,7 @@ export default function GraphPage() {
         }
     });
 
+    // 1. Prepare Monthly Data (Bar/Line Charts)
     const dataByMonth: Record<string, number> = {};
     relevantTransactions.forEach(transaction => {
       try {
@@ -120,23 +129,10 @@ export default function GraphPage() {
         console.error("Error parsing transaction date for aggregation:", transaction.date, error);
       }
     });
-    
-    const pieConfig: ChartConfig = {
-      totalGoodsGiven: {
-        label: "Goods Given",
-      },
-    };
 
-    const chartData = monthsInInterval.map((monthDate, index) => {
+    const monthlyData = monthsInInterval.map((monthDate, index) => {
       const monthKey = format(monthDate, 'MMM yyyy');
       const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`;
-
-      // Populate pieConfig dynamically
-      pieConfig[monthKey] = {
-        label: monthKey,
-        color: colorVar,
-      };
-
       return {
         month: monthKey,
         totalGoodsGiven: dataByMonth[monthKey] || 0,
@@ -144,9 +140,43 @@ export default function GraphPage() {
       };
     });
 
-    return { data: chartData, label: chartLabel, description: chartDescription, pieConfig };
+    // 2. Prepare Top 5 Shopkeepers Data (Pie Chart)
+    const goodsByShopkeeper: Record<string, number> = {};
+    relevantTransactions.forEach(t => {
+      goodsByShopkeeper[t.shopkeeperId] = (goodsByShopkeeper[t.shopkeeperId] || 0) + t.goodsGiven;
+    });
 
-  }, [transactions, loadingTransactions, isMounted, filterStartDate, filterEndDate]);
+    const sortedShopkeepers = Object.entries(goodsByShopkeeper)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5) // Take Top 5
+      .map(([id, total], index) => {
+        const shopkeeper = shopkeepers.find(s => s.id === id);
+        const name = shopkeeper ? shopkeeper.name : 'Unknown';
+        const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`;
+        return {
+          name: name,
+          totalGoodsGiven: total,
+          fill: colorVar
+        };
+      });
+
+    const pieConfig: ChartConfig = {
+      totalGoodsGiven: {
+        label: "Goods Given",
+      },
+    };
+
+    sortedShopkeepers.forEach(item => {
+      pieConfig[item.name] = {
+        label: item.name,
+        color: item.fill,
+      };
+    });
+
+
+    return { monthlyData, topShopkeepersData: sortedShopkeepers, label: chartLabel, description: chartDescription, pieConfig };
+
+  }, [transactions, loadingTransactions, isMounted, filterStartDate, filterEndDate, shopkeepers]);
 
   const clearFilters = () => {
     setFilterStartDate(undefined);
@@ -162,7 +192,8 @@ export default function GraphPage() {
     );
   }
 
-  const hasData = processedChartData.data.some(d => d.totalGoodsGiven > 0);
+  const hasData = processedChartData.monthlyData.some(d => d.totalGoodsGiven > 0);
+  const hasPieData = processedChartData.topShopkeepersData.some(d => d.totalGoodsGiven > 0);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -227,7 +258,7 @@ export default function GraphPage() {
             {hasData ? (
               <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
                 <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={processedChartData.data} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+                  <BarChart data={processedChartData.monthlyData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/0.2)" />
                     <XAxis
                       dataKey="month"
@@ -235,7 +266,7 @@ export default function GraphPage() {
                       axisLine={false}
                       tickMargin={12}
                       padding={{ left: 10, right: 10 }}
-                      interval={processedChartData.data.length > 12 ? Math.floor(processedChartData.data.length / 12) : 0}
+                      interval={processedChartData.monthlyData.length > 12 ? Math.floor(processedChartData.monthlyData.length / 12) : 0}
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={12}
                     />
@@ -258,7 +289,7 @@ export default function GraphPage() {
                       fill="var(--color-totalGoodsGiven)"
                       fillOpacity={0.9}
                       radius={[4, 4, 0, 0]}
-                      barSize={Math.max(10, 40 - Math.max(0, processedChartData.data.length - 12) * 2)}
+                      barSize={Math.max(10, 40 - Math.max(0, processedChartData.monthlyData.length - 12) * 2)}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -281,7 +312,7 @@ export default function GraphPage() {
             {hasData ? (
               <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
                 <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={processedChartData.data} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+                  <LineChart data={processedChartData.monthlyData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/0.2)" />
                     <XAxis
                       dataKey="month"
@@ -289,7 +320,7 @@ export default function GraphPage() {
                       axisLine={false}
                       tickMargin={12}
                       padding={{ left: 10, right: 10 }}
-                      interval={processedChartData.data.length > 12 ? Math.floor(processedChartData.data.length / 12) : 0}
+                      interval={processedChartData.monthlyData.length > 12 ? Math.floor(processedChartData.monthlyData.length / 12) : 0}
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={12}
                     />
@@ -327,34 +358,34 @@ export default function GraphPage() {
         {/* Pie Chart */}
         <Card className="shadow-lg border-border/60">
           <CardHeader>
-            <CardTitle>Pie Chart - Monthly Contribution</CardTitle>
+            <CardTitle>Top 5 Shopkeepers</CardTitle>
             <CardDescription>
-              Proportion of goods given by month.
+              Best shopkeepers by total goods given.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {hasData ? (
+            {hasPieData ? (
               <ChartContainer config={processedChartData.pieConfig} className="min-h-[350px] w-full mx-auto">
                 <ResponsiveContainer width="100%" height={350}>
                   <PieChart>
                     <ChartTooltip
                       cursor={false}
-                      content={<ChartTooltipContent hideLabel nameKey="month" indicator="dot" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
+                      content={<ChartTooltipContent hideLabel nameKey="name" indicator="dot" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
                     />
                     <Pie
-                      data={processedChartData.data}
+                      data={processedChartData.topShopkeepersData}
                       dataKey="totalGoodsGiven"
-                      nameKey="month"
+                      nameKey="name"
                       innerRadius={60}
                       outerRadius={120}
                       strokeWidth={2}
                       paddingAngle={2}
                     >
-                      {processedChartData.data.map((entry, index) => (
+                      {processedChartData.topShopkeepersData.map((entry, index) => (
                          <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
-                    <ChartLegend content={<ChartLegendContent nameKey="month" />} className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />
+                    <ChartLegend content={<ChartLegendContent nameKey="name" />} className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />
                   </PieChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -364,7 +395,7 @@ export default function GraphPage() {
           </CardContent>
           <CardFooter className="flex-col items-start gap-2 text-sm border-t pt-4 bg-muted/10">
             <div className="leading-none text-muted-foreground">
-              Showing total goods given per month.
+              Showing top 5 shopkeepers based on goods given.
               {(filterStartDate && filterEndDate)
                 ? ` Data range: ${format(filterStartDate, 'MMM d, yyyy')} - ${format(filterEndDate, 'MMM d, yyyy')}.`
                 : " Data range: Last 3 months."

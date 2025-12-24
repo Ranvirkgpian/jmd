@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin, Store, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -120,9 +121,14 @@ export default function HomePage() {
           transition={{ duration: 0.4 }}
           className="space-y-1"
         >
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Shopkeepers
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+              Shopkeepers
+            </h2>
+            <Badge variant="secondary" className="text-sm sm:text-base px-2 py-0.5 sm:px-3 sm:py-1 rounded-full">
+              {shopkeepers.length}
+            </Badge>
+          </div>
           <p className="text-muted-foreground text-sm">
             Manage your shopkeepers and view their transaction history.
           </p>
