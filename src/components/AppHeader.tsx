@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Landmark, Menu, X, LogOut, Home, FileText, BarChart3, Receipt, Package, Trash2 } from 'lucide-react';
+import { Landmark, Menu, X, LogOut, Home, FileText, BarChart3, Receipt, Package, Trash2, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,7 +34,7 @@ export function AppHeader() {
   };
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: Home },
+    { href: '/', label: "Shopkeepers's details", icon: Store },
     { href: '/products', label: 'Products', icon: Package },
     { href: '/transaction-summary', label: 'Summary', icon: Receipt },
     { href: '/reports', label: 'Transactions', icon: FileText },
