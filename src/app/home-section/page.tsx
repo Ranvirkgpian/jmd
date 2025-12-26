@@ -30,7 +30,8 @@ export default function HomeSectionPage() {
     const totalTransactionsCount = todaysTransactions.length;
     const totalGoodsGiven = todaysTransactions.reduce((sum, t) => sum + (Number(t.goodsGiven) || 0), 0);
     const totalMoneyReceived = todaysTransactions.reduce((sum, t) => sum + (Number(t.moneyReceived) || 0), 0);
-    const totalDue = totalGoodsGiven - totalMoneyReceived;
+    const rawDue = totalGoodsGiven - totalMoneyReceived;
+    const totalDue = rawDue < 0 ? 0 : rawDue;
 
     return {
       count: totalTransactionsCount,
