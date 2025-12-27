@@ -34,8 +34,8 @@ export function AppHeader() {
   };
 
   const navLinks = [
-    { href: '/home-section', label: 'Home Section', icon: Home },
-    { href: '/', label: "Shopkeepers's details", icon: Store },
+    { href: '/', label: 'Home Section', icon: Home },
+    { href: '/shopkeepers', label: "Shopkeepers's details", icon: Store },
     { href: '/products', label: 'Products', icon: Package },
     { href: '/transaction-summary', label: 'Summary', icon: Receipt },
     { href: '/reports', label: 'Transactions', icon: FileText },
