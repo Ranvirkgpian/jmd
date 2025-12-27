@@ -188,67 +188,51 @@ export default function CreateBillPage() {
           <CardContent className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Customer Name</Label>
-              <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={customerSearchOpen}
-                    className="w-full justify-between"
-                  >
-                    {watch('customerName') || "Select or type customer..."}
-                    <Search className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search customer..." />
-                    <CommandList>
-                      <CommandEmpty>
-                        <div className="p-2">
-                           <p className="text-sm text-muted-foreground mb-2">No customer found.</p>
-                           <Button
-                             size="sm"
-                             className="w-full"
-                             onClick={() => {
-                               // This is tricky with Command, usually we just type in the input.
-                               // For now, let's just use the CommandInput value if possible?
-                               // Actually, let's allow typing in a separate input if not found,
-                               // OR simply use a regular input with suggestions.
-                               setCustomerSearchOpen(false);
-                             }}
-                           >
-                             Use new name
-                           </Button>
-                        </div>
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {customers.map((customer) => (
-                          <CommandItem
-                            key={customer.id}
-                            value={customer.name}
-                            onSelect={(currentValue) => {
-                              setValue('customerName', customer.name);
-                              setValue('customerId', customer.id);
-                              setValue('customerMobile', customer.mobile_number || '');
-                              setValue('customerAddress', customer.address || '');
-                              setCustomerSearchOpen(false);
-                            }}
-                          >
-                            {customer.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {/* Fallback Input if they want to type a new name freely */}
-               <Input
-                  placeholder="Or type new customer name"
-                  {...register('customerName', { required: true })}
-                  className={watch('customerId') ? 'hidden' : 'block'} // Hide if selected from list? No, allow edit.
-               />
+              <div className="flex gap-2">
+                <div className="relative flex-grow">
+                  <Input
+                    placeholder="Type customer name"
+                    {...register('customerName', {
+                      required: true,
+                      onChange: (e) => {
+                         setValue('customerId', '');
+                      }
+                    })}
+                  />
+                </div>
+                <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" title="Search Existing Customer">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="end">
+                    <Command>
+                      <CommandInput placeholder="Search customer..." />
+                      <CommandList>
+                        <CommandEmpty>No customer found.</CommandEmpty>
+                        <CommandGroup>
+                          {customers.map((customer) => (
+                            <CommandItem
+                              key={customer.id}
+                              value={customer.name}
+                              onSelect={() => {
+                                setValue('customerName', customer.name);
+                                setValue('customerId', customer.id);
+                                setValue('customerMobile', customer.mobile_number || '');
+                                setValue('customerAddress', customer.address || '');
+                                setCustomerSearchOpen(false);
+                              }}
+                            >
+                              {customer.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             <div className="space-y-2">
