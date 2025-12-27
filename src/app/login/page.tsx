@@ -7,13 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { Landmark, LogIn, Loader2, User, Lock } from 'lucide-react';
+import { Landmark, LogIn, Loader2, User, Lock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0 }
 };
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,23 +26,79 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
 
+  // Initialize state from local storage on mount
   useEffect(() => {
     setIsMounted(true);
     if (localStorage.getItem('isLoggedIn') === 'true') {
       router.push('/');
     }
+
+    const storedAttempts = parseInt(localStorage.getItem('loginAttempts') || '0', 10);
+    const storedLockout = localStorage.getItem('loginLockoutTime');
+
+    if (storedLockout) {
+      const lockout = parseInt(storedLockout, 10);
+      if (Date.now() < lockout) {
+        setLockoutTime(lockout);
+      } else {
+        // Lockout expired while away
+        localStorage.removeItem('loginLockoutTime');
+        localStorage.removeItem('loginAttempts');
+        setAttempts(0);
+      }
+    } else {
+      setAttempts(storedAttempts);
+    }
   }, [router]);
+
+  // Check for lockout expiration periodically
+  useEffect(() => {
+    if (!lockoutTime) return;
+
+    const interval = setInterval(() => {
+      if (Date.now() >= lockoutTime) {
+        setLockoutTime(null);
+        setAttempts(0);
+        setError('');
+        localStorage.removeItem('loginLockoutTime');
+        localStorage.removeItem('loginAttempts');
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutTime]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+
+    // Double check lockout just in case
+    if (lockoutTime) {
+      if (Date.now() < lockoutTime) {
+        const remaining = Math.ceil((lockoutTime - Date.now()) / 60000);
+        setError(`Too many failed attempts. Try again in ${remaining} minutes.`);
+        return;
+      } else {
+        // Should be handled by useEffect, but safe fallback
+        setLockoutTime(null);
+        setAttempts(0);
+        localStorage.removeItem('loginLockoutTime');
+        localStorage.removeItem('loginAttempts');
+      }
+    }
+
+    setIsLoading(true);
 
     await new Promise(resolve => setTimeout(resolve, 800)); // Slightly longer realistic delay
 
     if (username === 'JMD' && password === '311976') {
       localStorage.setItem('isLoggedIn', 'true');
+      localStorage.removeItem('loginAttempts');
+      localStorage.removeItem('loginLockoutTime');
+
       toast({
         title: "Welcome to JMD Enterprises",
         description: "You have successfully logged in.",
@@ -47,12 +106,30 @@ export default function LoginPage() {
       router.push('/');
       router.refresh();
     } else {
-      setError('Invalid username or password.');
-      toast({
-        title: "Authentication Failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive",
-      });
+      // Use callback to ensure we have latest attempts value if multiple rapid clicks were possible (though disabled while loading)
+      const currentAttempts = attempts + 1;
+      setAttempts(currentAttempts);
+      localStorage.setItem('loginAttempts', currentAttempts.toString());
+
+      if (currentAttempts >= MAX_ATTEMPTS) {
+        const lockTime = Date.now() + LOCKOUT_DURATION;
+        setLockoutTime(lockTime);
+        localStorage.setItem('loginLockoutTime', lockTime.toString());
+        setError(`Too many failed attempts. Try again in 15 minutes.`);
+        toast({
+          title: "Account Locked",
+          description: "Too many failed login attempts.",
+          variant: "destructive",
+        });
+      } else {
+        const remaining = MAX_ATTEMPTS - currentAttempts;
+        setError(`Invalid credentials. ${remaining} attempts remaining.`);
+        toast({
+          title: "Authentication Failed",
+          description: "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      }
     }
     setIsLoading(false);
   };
@@ -64,6 +141,9 @@ export default function LoginPage() {
       </div>
     );
   }
+
+  // Calculate remaining minutes for display
+  const remainingMinutes = lockoutTime ? Math.ceil((lockoutTime - Date.now()) / 60000) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
@@ -120,7 +200,8 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+                    disabled={!!lockoutTime}
+                    className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 transition-all disabled:opacity-50"
                   />
                 </div>
               </motion.div>
@@ -147,7 +228,8 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+                    disabled={!!lockoutTime}
+                    className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 transition-all disabled:opacity-50"
                   />
                 </div>
               </motion.div>
@@ -160,7 +242,8 @@ export default function LoginPage() {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-300 py-2 px-3 rounded-md border border-red-100 dark:border-red-900/50 flex items-center justify-center">
+                    <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-300 py-2 px-3 rounded-md border border-red-100 dark:border-red-900/50 flex items-center justify-center gap-2">
+                       {lockoutTime ? <AlertTriangle className="h-4 w-4" /> : null}
                        {error}
                     </div>
                   </motion.div>
@@ -179,8 +262,8 @@ export default function LoginPage() {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
-                  disabled={isLoading}
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-lg shadow-lg hover:shadow-blue-500/25 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={isLoading || !!lockoutTime}
                 >
                   {isLoading ? (
                     <motion.div
@@ -190,6 +273,15 @@ export default function LoginPage() {
                     >
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Authenticating...
+                    </motion.div>
+                  ) : lockoutTime ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center"
+                    >
+                      <Lock className="mr-2 h-5 w-5" />
+                      Locked ({remainingMinutes}m)
                     </motion.div>
                   ) : (
                     <motion.div
