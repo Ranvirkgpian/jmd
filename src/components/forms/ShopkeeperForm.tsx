@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { Shopkeeper } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea'; // Added Textarea
@@ -95,6 +96,7 @@ export function ShopkeeperForm({ onSubmit, initialData, onCancel }: ShopkeeperFo
         <div className="flex justify-end space-x-3">
           {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
           <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {form.formState.isSubmitting ? (initialData ? 'Saving...' : 'Adding...') : (initialData ? 'Save Changes' : 'Add Shopkeeper')}
           </Button>
         </div>
