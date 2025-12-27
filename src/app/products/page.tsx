@@ -1,8 +1,9 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
+import { useDebounce } from '@/hooks/use-debounce';
 import { AddProductDialog } from '@/components/dialogs/AddProductDialog';
 import { EditProductDialog } from '@/components/dialogs/EditProductDialog';
 import { Input } from '@/components/ui/input';
@@ -25,19 +26,25 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
+
+  // Debounce search and filter values to improve performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const debouncedMinPrice = useDebounce(minPrice, 300);
+  const debouncedMaxPrice = useDebounce(maxPrice, 300);
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredProducts = useMemo(() => products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
 
     let matchesPrice = true;
     const price = product.selling_price;
-    if (minPrice && price < parseFloat(minPrice)) matchesPrice = false;
-    if (maxPrice && price > parseFloat(maxPrice)) matchesPrice = false;
+    if (debouncedMinPrice && price < parseFloat(debouncedMinPrice)) matchesPrice = false;
+    if (debouncedMaxPrice && price > parseFloat(debouncedMaxPrice)) matchesPrice = false;
 
     return matchesSearch && matchesPrice;
-  });
+  }), [products, debouncedSearchQuery, debouncedMinPrice, debouncedMaxPrice]);
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
