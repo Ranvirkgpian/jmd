@@ -105,13 +105,11 @@ export default function BillHistoryPage() {
                   <TableHead>Bill #</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead>Due</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredBills.map((bill) => {
-                  const due = bill.total_amount - bill.paid_amount;
                   const customer = customers.find(c => c.id === bill.customer_id);
 
                   return (
@@ -120,9 +118,6 @@ export default function BillHistoryPage() {
                       <TableCell className="font-medium">{bill.bill_number}</TableCell>
                       <TableCell>{bill.customer_name}</TableCell>
                       <TableCell>₹{bill.total_amount}</TableCell>
-                      <TableCell>
-                         {due > 0 ? <span className="text-red-500 font-medium">₹{due}</span> : <span className="text-green-500">Paid</span>}
-                      </TableCell>
                       <TableCell className="text-right flex justify-end gap-2">
                          <Dialog>
                            <DialogTrigger asChild>
