@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, ChevronRight, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Search, ChevronRight, ChevronDown, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -78,6 +78,7 @@ export default function CustomerLedgerPage() {
                   <TableHead className="text-right">Total Billed</TableHead>
                   <TableHead className="text-right">Total Received</TableHead>
                   <TableHead className="text-right">Total Due</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,13 +102,27 @@ export default function CustomerLedgerPage() {
                           <span className="text-green-500">Paid</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                         <Button asChild size="icon" variant="ghost" title="Create Bill" onClick={(e) => e.stopPropagation()}>
+                           <Link href={`/bill-book/new?customerId=${customer.id}`}>
+                             <PlusCircle className="w-4 h-4 text-blue-600" />
+                           </Link>
+                         </Button>
+                      </TableCell>
                     </TableRow>
 
                     {expandedCustomerId === customer.id && (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={6} className="p-4">
+                        <TableCell colSpan={7} className="p-4">
                            <div className="rounded-md border bg-background">
-                             <div className="p-3 bg-muted/20 border-b font-medium text-sm">Transaction History</div>
+                             <div className="flex justify-between items-center p-3 bg-muted/20 border-b">
+                               <span className="font-medium text-sm">Transaction History</span>
+                               <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                                 <Link href={`/bill-book/new?customerId=${customer.id}`}>
+                                   Create New Bill
+                                 </Link>
+                               </Button>
+                             </div>
                              <Table>
                                <TableHeader>
                                  <TableRow>
@@ -147,7 +162,7 @@ export default function CustomerLedgerPage() {
                 ))}
                 {customerLedger.length === 0 && (
                    <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No customers found.
                     </TableCell>
                   </TableRow>

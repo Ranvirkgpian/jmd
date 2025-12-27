@@ -36,18 +36,21 @@ export default function ReportsPage() {
   const totalDue = totalSales - totalReceived;
   const billCount = filteredBills.length;
 
-  // Chart Data: Group by Date
-  const chartDataMap = filteredBills.reduce((acc, bill) => {
-    const dateStr = format(new Date(bill.date), 'dd/MM');
-    if (!acc[dateStr]) {
-      acc[dateStr] = { date: dateStr, sales: 0, received: 0 };
+  // Aggregate Product Quantity Sold
+  const productSalesMap = filteredBills.reduce((acc, bill) => {
+    if (bill.items && Array.isArray(bill.items)) {
+      bill.items.forEach(item => {
+        const productName = item.product_name;
+        if (!acc[productName]) {
+          acc[productName] = { name: productName, quantity: 0 };
+        }
+        acc[productName].quantity += item.quantity;
+      });
     }
-    acc[dateStr].sales += bill.total_amount;
-    acc[dateStr].received += bill.paid_amount;
     return acc;
-  }, {} as Record<string, { date: string, sales: number, received: number }>);
+  }, {} as Record<string, { name: string, quantity: number }>);
 
-  const chartData = Object.values(chartDataMap).sort((a,b) => a.date.localeCompare(b.date)); // Simple sort by string date dd/MM roughly works for same month, but better to sort by timestamp if strictly needed.
+  const productChartData = Object.values(productSalesMap).sort((a, b) => b.quantity - a.quantity);
 
   return (
     <div className="space-y-6">
@@ -146,23 +149,22 @@ export default function ReportsPage() {
       {/* Charts */}
       <Card>
         <CardHeader>
-          <CardTitle>Sales vs Received Overview</CardTitle>
+          <CardTitle>Product Sales (Quantity)</CardTitle>
         </CardHeader>
-        <CardContent className="h-[300px]">
-          {chartData.length > 0 ? (
+        <CardContent className="h-[400px]">
+          {productChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart data={productChartData} layout="vertical" margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis dataKey="name" type="category" width={100} />
                 <Tooltip />
-                <Bar dataKey="sales" name="Sales" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="received" name="Received" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="quantity" name="Quantity Sold" fill="#2563eb" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-               No data for selected range.
+               No sales data for selected range.
             </div>
           )}
         </CardContent>
