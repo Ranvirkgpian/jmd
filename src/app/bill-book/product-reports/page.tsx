@@ -17,7 +17,7 @@ type DateRange = {
   to: Date;
 };
 
-export default function ReportsPage() {
+export default function ProductReportsPage() {
   const { bills } = useBill();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -61,7 +61,7 @@ export default function ReportsPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Product Reports</h1>
           <p className="text-muted-foreground">Sales summary and analytics.</p>
         </div>
       </div>
