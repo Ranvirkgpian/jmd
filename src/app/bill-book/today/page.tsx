@@ -7,16 +7,44 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, FileText, ArrowLeft, Loader2 } from 'lucide-react';
+import { Eye, FileText, ArrowLeft, Loader2, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { BillDetails } from '@/components/bill-book/BillDetails';
+import { generateBillPDF } from '@/lib/pdfGenerator';
+import { Bill } from '@/lib/types';
 
 export default function TodaysBillsPage() {
-  const { bills, loadingBills } = useBill();
+  const { bills, customers, settings, loadingBills } = useBill();
   const router = useRouter();
+  const [selectedBill, setSelectedBill] = React.useState<Bill | null>(null);
+  const [isViewOpen, setIsViewOpen] = React.useState(false);
 
   const todaysBills = bills.filter(bill => isToday(new Date(bill.date)));
   const totalAmount = todaysBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0);
+
+  const handleShare = (bill: Bill) => {
+    const customer = customers.find(c => c.id === bill.customer_id);
+
+    // Generate PDF
+    generateBillPDF(bill, settings, customer?.address);
+
+    // Open WhatsApp
+    let waUrl = 'https://web.whatsapp.com';
+    if (customer?.mobile_number) {
+      // Basic cleanup of phone number if needed, usually assumes 10 digits or with country code
+      // For now, passing as is.
+      waUrl = `https://wa.me/${customer.mobile_number}`;
+    }
+
+    window.open(waUrl, '_blank');
+  };
 
   if (loadingBills) {
     return (
@@ -81,37 +109,33 @@ export default function TodaysBillsPage() {
                     <TableHead>Bill #</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Paid</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Share</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {todaysBills.map((bill) => {
-                    const due = bill.total_amount - bill.paid_amount;
                     return (
                       <TableRow key={bill.id}>
                         <TableCell className="font-medium">{bill.bill_number}</TableCell>
                         <TableCell>{bill.customer_name}</TableCell>
                         <TableCell>₹{bill.total_amount.toFixed(2)}</TableCell>
-                        <TableCell className="text-green-600">₹{bill.paid_amount.toFixed(2)}</TableCell>
-                        <TableCell>
-                          {due <= 0 ? (
-                            <Badge variant="default" className="bg-green-500 hover:bg-green-600">Paid</Badge>
-                          ) : bill.paid_amount === 0 ? (
-                            <Badge variant="destructive">Unpaid</Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-orange-600">Partial</Badge>
-                          )}
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleShare(bill)}
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                          </Button>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => {
-                             // View Details Logic (Modal or Page)
-                             // For now, simple alert or log, or route to details if we had one
-                             // router.push(`/bill-book/history?id=${bill.id}`);
-                             // Let's just assume we view it in history for now or placeholder
+                             setSelectedBill(bill);
+                             setIsViewOpen(true);
                           }}>
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-4 h-4 text-blue-500" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -123,6 +147,21 @@ export default function TodaysBillsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bill Details</DialogTitle>
+          </DialogHeader>
+          {selectedBill && (
+            <BillDetails
+              bill={selectedBill}
+              settings={settings}
+              customer={customers.find(c => c.id === selectedBill.customer_id)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
