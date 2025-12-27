@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopkeeperDialog } from '@/components/dialogs/ShopkeeperDialog';
 import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
-import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin, Store, ChevronRight } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin, Store, ChevronRight, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -145,10 +145,22 @@ export default function ShopkeepersPage() {
             <Input
               type="search"
               placeholder="Search by name..."
+              aria-label="Search shopkeepers"
               value={searchQuery}
               onChange={handleSearchChange}
-              className="pl-10 h-11 bg-background border-border focus:border-primary/50 shadow-sm transition-all hover:shadow-md"
+              className="pl-10 pr-10 h-11 bg-background border-border focus:border-primary/50 shadow-sm transition-all hover:shadow-md"
             />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           <Button
             onClick={handleAddShopkeeper}
@@ -287,6 +299,7 @@ export default function ShopkeepersPage() {
                           onClick={() => handleEditShopkeeper(shopkeeper)}
                           className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
                           title="Edit"
+                          aria-label={`Edit ${shopkeeper.name}`}
                         >
                           <Edit3 className="h-4 w-4" />
                         </Button>
@@ -296,6 +309,7 @@ export default function ShopkeepersPage() {
                           onClick={() => handleDeleteShopkeeper(shopkeeper)}
                           className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                           title="Delete"
+                          aria-label={`Delete ${shopkeeper.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
