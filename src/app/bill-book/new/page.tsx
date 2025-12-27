@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useBill } from '@/contexts/BillContext';
 import { useData } from '@/contexts/DataContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { format } from 'date-fns';
 import { ArrowLeft, CalendarIcon, Plus, Trash2, Search, Loader2 } from 'lucide-react';
@@ -29,6 +29,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui/command';
 import { useToast } from '@/hooks/use-toast';
 import { BillCustomer, Product } from '@/lib/types';
@@ -51,10 +52,11 @@ interface BillFormValues {
   paymentMethod: string;
 }
 
-export default function CreateBillPage() {
+function CreateBillForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { customers, addCustomer, addBill, settings } = useBill();
-  const { products } = useData();
+  const { products, shopkeepers } = useData();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -79,6 +81,20 @@ export default function CreateBillPage() {
     name: "items"
   });
 
+  // Handle URL query param for customerId
+  useEffect(() => {
+    const queryCustomerId = searchParams.get('customerId');
+    if (queryCustomerId) {
+      const existingCustomer = customers.find(c => c.id === queryCustomerId);
+      if (existingCustomer) {
+        setValue('customerId', existingCustomer.id);
+        setValue('customerName', existingCustomer.name);
+        setValue('customerMobile', existingCustomer.mobile_number || '');
+        setValue('customerAddress', existingCustomer.address || '');
+      }
+    }
+  }, [searchParams, customers, setValue]);
+
   // Watch values for calculations
   const items = watch('items');
   const discount = watch('discount') || 0;
@@ -98,13 +114,6 @@ export default function CreateBillPage() {
     });
   }, [items, setValue]);
 
-  // Handle Product Selection from Command/Combobox
-  const handleProductSelect = (index: number, product: Product) => {
-    setValue(`items.${index}.productName`, product.name);
-    setValue(`items.${index}.rate`, product.selling_price);
-    // Don't auto-calculate here, the effect will catch it
-  };
-
   const onSubmit = async (data: BillFormValues) => {
     if (items.length === 0) {
       toast({ title: "Error", description: "Please add at least one item.", variant: "destructive" });
@@ -116,8 +125,6 @@ export default function CreateBillPage() {
       let finalCustomerId = data.customerId;
 
       // Create customer if new (simple logic: if no ID but has name)
-      // Or actually, always check if name matches existing to update?
-      // For simplicity: If ID is empty, create new.
       if (!finalCustomerId && data.customerName) {
          // Check if customer name already exists in list to avoid duplicates if user just typed it
          const existing = customers.find(c => c.name.toLowerCase() === data.customerName.toLowerCase());
@@ -211,11 +218,12 @@ export default function CreateBillPage() {
                       <CommandInput placeholder="Search customer..." />
                       <CommandList>
                         <CommandEmpty>No customer found.</CommandEmpty>
-                        <CommandGroup>
+
+                        <CommandGroup heading="Bill Customers">
                           {customers.map((customer) => (
                             <CommandItem
                               key={customer.id}
-                              value={customer.name}
+                              value={`C:${customer.name}`}
                               onSelect={() => {
                                 setValue('customerName', customer.name);
                                 setValue('customerId', customer.id);
@@ -228,6 +236,27 @@ export default function CreateBillPage() {
                             </CommandItem>
                           ))}
                         </CommandGroup>
+
+                        <CommandSeparator />
+
+                        <CommandGroup heading="Shopkeepers">
+                          {shopkeepers.map((shopkeeper) => (
+                            <CommandItem
+                              key={shopkeeper.id}
+                              value={`S:${shopkeeper.name}`}
+                              onSelect={() => {
+                                setValue('customerName', shopkeeper.name);
+                                setValue('customerId', ''); // New to bill book
+                                setValue('customerMobile', shopkeeper.mobileNumber || '');
+                                setValue('customerAddress', shopkeeper.address || '');
+                                setCustomerSearchOpen(false);
+                              }}
+                            >
+                              {shopkeeper.name} (Shopkeeper)
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+
                       </CommandList>
                     </Command>
                   </PopoverContent>
@@ -256,8 +285,6 @@ export default function CreateBillPage() {
                     selected={watch('date')}
                     onSelect={(date) => {
                        if(date) setValue('date', date);
-                       // Auto close handled by UI library usually? No, need to close popover manually if controlled.
-                       // Using un-controlled popover for simplicity here.
                     }}
                     initialFocus
                   />
@@ -433,5 +460,13 @@ export default function CreateBillPage() {
 
       </form>
     </div>
+  );
+}
+
+export default function CreateBillPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-10"><Loader2 className="animate-spin w-8 h-8 text-muted-foreground" /></div>}>
+      <CreateBillForm />
+    </Suspense>
   );
 }

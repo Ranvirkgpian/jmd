@@ -1,5 +1,5 @@
 
-> nextn@0.1.0 dev
+> nextn@0.1.0 dev /app
 > next dev --turbopack -p 9002
 
    ▲ Next.js 15.5.9 (Turbopack)
@@ -7,34 +7,38 @@
    - Network:      http://192.168.0.2:9002
 
  ✓ Starting...
- ✓ Ready in 1473ms
+ ✓ Ready in 1497ms
  ○ Compiling /login ...
- ✓ Compiled /login in 7s
- GET /login 200 in 7760ms
+ ✓ Compiled /login in 8.4s
+ GET /login 200 in 9320ms
  ○ Compiling / ...
- ✓ Compiled / in 1342ms
- GET / 200 in 1423ms
- GET / 200 in 119ms
+ ✓ Compiled / in 1153ms
+ GET / 200 in 1278ms
+ GET / 200 in 143ms
+ GET /login 200 in 220ms
+ GET / 200 in 174ms
+ GET / 200 in 151ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 798ms
+ GET /robots.txt 404 in 951ms
+ GET /login 200 in 255ms
+ GET /login 200 in 244ms
+ GET / 200 in 126ms
+ GET / 200 in 129ms
+ GET /login 200 in 158ms
+ GET / 200 in 115ms
+ GET / 200 in 201ms
  GET /login 200 in 148ms
- GET / 200 in 110ms
- GET / 200 in 110ms
- ○ Compiling /transaction-summary ...
- ✓ Compiled /transaction-summary in 834ms
- GET /transaction-summary 200 in 974ms
- GET /login 200 in 117ms
- GET / 200 in 110ms
- GET / 200 in 146ms
- GET /transaction-summary 200 in 136ms
- ○ Compiling /graph ...
- ✓ Compiled /graph in 4.2s
- GET /graph 200 in 4626ms
- GET /login 200 in 143ms
- GET / 200 in 101ms
- GET / 200 in 128ms
- GET /transaction-summary 200 in 121ms
- GET /graph 200 in 211ms
- GET /login 200 in 150ms
- GET / 200 in 117ms
- GET / 200 in 98ms
- GET /transaction-summary 200 in 112ms
- GET /graph 200 in 121ms
+ GET /login 200 in 159ms
+ GET / 200 in 124ms
+ GET / 200 in 115ms
+ ○ Compiling /bill-book/reports ...
+ ✓ Compiled /bill-book/reports in 4.6s
+ GET /bill-book/reports 200 in 5182ms
+ ○ Compiling /bill-book/ledger ...
+ ✓ Compiled /bill-book/ledger in 673ms
+ GET /bill-book/ledger 200 in 960ms
+ ○ Compiling /bill-book/new ...
+ ✓ Compiled /bill-book/new in 1176ms
+ GET /bill-book/new 200 in 1439ms
+ GET /bill-book/new?customerId=test-id-123 200 in 254ms
