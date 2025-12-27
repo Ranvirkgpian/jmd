@@ -3,6 +3,7 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { DataProvider } from '@/contexts/DataContext';
+import { BillProvider } from '@/contexts/BillContext';
 import { AppHeader } from '@/components/AppHeader';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthGuard } from '@/components/AuthGuard';
@@ -40,9 +41,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning={true}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background text-foreground min-h-screen flex flex-col`} suppressHydrationWarning={true}>
         <DataProvider>
-          <AuthGuard>
-            <AppHeader />
-            <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+          <BillProvider>
+            <AuthGuard>
+              <AppHeader />
+              <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={pathname}
@@ -55,9 +57,10 @@ export default function RootLayout({
                   {children}
                 </motion.div>
               </AnimatePresence>
-            </main>
-            <Toaster />
-          </AuthGuard>
+              </main>
+              <Toaster />
+            </AuthGuard>
+          </BillProvider>
         </DataProvider>
       </body>
     </html>

@@ -18,9 +18,10 @@ interface DatePickerProps {
   onChange: (date: Date | undefined) => void;
   disabled?: (date: Date) => boolean;
   className?: string;
+  placeholder?: string;
 }
 
-export function DatePicker({ value, onChange, disabled, className }: DatePickerProps) {
+export function DatePicker({ value, onChange, disabled, className, placeholder }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -35,7 +36,7 @@ export function DatePicker({ value, onChange, disabled, className }: DatePickerP
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>Pick a date</span>}
+          {value ? format(value, "PPP") : <span>{placeholder || "Pick a date"}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

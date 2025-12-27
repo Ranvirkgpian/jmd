@@ -66,6 +66,68 @@ export interface DataContextType {
   permanentlyDeleteProduct: (id: string) => Promise<void>;
 }
 
+// Bill Book Types
+export interface BillCustomer {
+  id: string;
+  name: string;
+  mobile_number?: string;
+  address?: string;
+  created_at: string;
+  deleted_at?: string | null;
+}
+
+export interface BillItem {
+  id: string;
+  bill_id: string;
+  product_name: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+}
+
+export interface Bill {
+  id: string;
+  bill_number: number;
+  customer_id: string;
+  customer_name: string;
+  date: string;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  payment_method?: string;
+  items?: BillItem[]; // Hydrated
+  created_at: string;
+  deleted_at?: string | null;
+}
+
+export interface BillSettings {
+  id: string;
+  company_name: string;
+  company_logo?: string;
+  company_address?: string;
+  company_mobile?: string;
+  company_email?: string;
+  company_gst?: string;
+  payment_methods: string[];
+}
+
+export interface BillContextType {
+  customers: BillCustomer[];
+  loadingCustomers: boolean;
+  addCustomer: (customer: Omit<BillCustomer, 'id' | 'created_at' | 'deleted_at'>) => Promise<BillCustomer | null>;
+
+  bills: Bill[];
+  loadingBills: boolean;
+  addBill: (bill: Omit<Bill, 'id' | 'bill_number' | 'created_at' | 'deleted_at' | 'items'>, items: Omit<BillItem, 'id' | 'bill_id'>[]) => Promise<void>;
+  deleteBill: (id: string) => Promise<void>; // Soft delete
+
+  settings: BillSettings | null;
+  loadingSettings: boolean;
+  updateSettings: (settings: Partial<BillSettings>) => Promise<void>;
+}
+
 // Placeholder for Supabase generated types. 
 // You would typically generate this using `supabase gen types typescript > src/lib/types/supabase.ts`
 export interface Database {
@@ -150,6 +212,140 @@ export interface Database {
           selling_price?: number;
           created_at?: string;
           deleted_at?: string | null;
+        };
+      };
+      bill_customers: {
+        Row: {
+          id: string;
+          name: string;
+          mobile_number: string | null;
+          address: string | null;
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          mobile_number?: string | null;
+          address?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          mobile_number?: string | null;
+          address?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+      };
+      bills: {
+        Row: {
+          id: string;
+          bill_number: number;
+          customer_id: string;
+          customer_name: string;
+          date: string;
+          subtotal: number;
+          discount_amount: number;
+          tax_amount: number;
+          total_amount: number;
+          paid_amount: number;
+          payment_method: string | null;
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          bill_number?: number;
+          customer_id: string;
+          customer_name: string;
+          date: string;
+          subtotal: number;
+          discount_amount: number;
+          tax_amount: number;
+          total_amount: number;
+          paid_amount: number;
+          payment_method?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          bill_number?: number;
+          customer_id?: string;
+          customer_name?: string;
+          date?: string;
+          subtotal?: number;
+          discount_amount?: number;
+          tax_amount?: number;
+          total_amount?: number;
+          paid_amount?: number;
+          payment_method?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+        };
+      };
+      bill_items: {
+        Row: {
+          id: string;
+          bill_id: string;
+          product_name: string;
+          quantity: number;
+          rate: number;
+          amount: number;
+        };
+        Insert: {
+          id?: string;
+          bill_id: string;
+          product_name: string;
+          quantity: number;
+          rate: number;
+          amount: number;
+        };
+        Update: {
+          id?: string;
+          bill_id?: string;
+          product_name?: string;
+          quantity?: number;
+          rate?: number;
+          amount?: number;
+        };
+      };
+      bill_settings: {
+        Row: {
+          id: string;
+          company_name: string | null;
+          company_logo: string | null;
+          company_address: string | null;
+          company_mobile: string | null;
+          company_email: string | null;
+          company_gst: string | null;
+          payment_methods: unknown | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_name?: string | null;
+          company_logo?: string | null;
+          company_address?: string | null;
+          company_mobile?: string | null;
+          company_email?: string | null;
+          company_gst?: string | null;
+          payment_methods?: unknown | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_name?: string | null;
+          company_logo?: string | null;
+          company_address?: string | null;
+          company_mobile?: string | null;
+          company_email?: string | null;
+          company_gst?: string | null;
+          payment_methods?: unknown | null;
+          created_at?: string;
         };
       };
     };
