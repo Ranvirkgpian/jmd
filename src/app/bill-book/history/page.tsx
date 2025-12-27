@@ -3,14 +3,12 @@
 import React, { useState } from 'react';
 import { useBill } from '@/contexts/BillContext';
 import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Trash2, ArrowLeft, Search, Download } from 'lucide-react';
+import { Eye, Trash2, ArrowLeft, Search, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { generateBillPDF } from '@/lib/pdfGenerator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,9 +28,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { BillDetails } from '@/components/bill-book/BillDetails';
 
 export default function BillHistoryPage() {
-  const { bills, deleteBill, loadingBills } = useBill();
+  const { bills, customers, settings, deleteBill, loadingBills } = useBill();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
@@ -62,92 +61,13 @@ export default function BillHistoryPage() {
     }
   };
 
-  // Mock View Bill Component (In reality, this would show full details or PDF)
-  const BillDetails = ({ billId }: { billId: string }) => {
-    const { settings } = useBill();
-    const bill = bills.find(b => b.id === billId);
-    if (!bill) return null;
-
+  if (loadingBills) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="font-semibold text-muted-foreground">Customer:</span>
-            <div className="text-lg">{bill.customer_name}</div>
-          </div>
-          <div className="text-right">
-            <span className="font-semibold text-muted-foreground">Bill #:</span>
-            <div className="text-lg">{bill.bill_number}</div>
-          </div>
-          <div>
-            <span className="font-semibold text-muted-foreground">Date:</span>
-            <div>{format(new Date(bill.date), 'PPP')}</div>
-          </div>
-          <div className="text-right">
-             <span className="font-semibold text-muted-foreground">Status:</span>
-             <div>{bill.paid_amount >= bill.total_amount ? 'Paid' : 'Unpaid'}</div>
-          </div>
-        </div>
-
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Rate</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bill.items?.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.product_name}</TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">{item.rate}</TableCell>
-                  <TableCell className="text-right">{item.amount}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex justify-end text-right space-y-1 flex-col">
-           <div className="flex justify-between w-48 self-end">
-             <span>Subtotal:</span>
-             <span>{bill.subtotal}</span>
-           </div>
-           {bill.discount_amount > 0 && (
-             <div className="flex justify-between w-48 self-end text-green-600">
-               <span>Discount:</span>
-               <span>-{bill.discount_amount}</span>
-             </div>
-           )}
-           {bill.tax_amount > 0 && (
-             <div className="flex justify-between w-48 self-end text-slate-600">
-               <span>Tax:</span>
-               <span>+{bill.tax_amount}</span>
-             </div>
-           )}
-           <div className="flex justify-between w-48 self-end font-bold text-lg border-t pt-2 mt-2">
-             <span>Total:</span>
-             <span>{bill.total_amount}</span>
-           </div>
-            <div className="flex justify-between w-48 self-end text-sm text-muted-foreground">
-             <span>Paid:</span>
-             <span>{bill.paid_amount}</span>
-           </div>
-        </div>
-
-        <div className="flex justify-center pt-4">
-           {/* Placeholder for PDF Generation */}
-           <Button variant="outline" onClick={() => generateBillPDF(bill, settings)}>
-             <Download className="mr-2 w-4 h-4" /> Download PDF
-           </Button>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -192,6 +112,8 @@ export default function BillHistoryPage() {
               <TableBody>
                 {filteredBills.map((bill) => {
                   const due = bill.total_amount - bill.paid_amount;
+                  const customer = customers.find(c => c.id === bill.customer_id);
+
                   return (
                     <TableRow key={bill.id}>
                       <TableCell>{format(new Date(bill.date), 'dd/MM/yyyy')}</TableCell>
@@ -212,7 +134,11 @@ export default function BillHistoryPage() {
                               <DialogHeader>
                                 <DialogTitle>Bill Details</DialogTitle>
                               </DialogHeader>
-                              <BillDetails billId={bill.id} />
+                              <BillDetails
+                                bill={bill}
+                                settings={settings}
+                                customer={customer}
+                              />
                            </DialogContent>
                          </Dialog>
 
