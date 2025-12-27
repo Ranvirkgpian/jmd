@@ -2,13 +2,18 @@
 
 import React, { useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
+import { useBill } from '@/contexts/BillContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, ArrowUpCircle, ArrowDownCircle, Banknote, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { FileText, ArrowUpCircle, ArrowDownCircle, Banknote, Calendar, Eye, Loader2 } from 'lucide-react';
+import { format, isToday } from 'date-fns';
+import Link from 'next/link';
 
 export default function HomePage() {
   const { transactions, loadingTransactions } = useData();
+  const { bills, loadingBills } = useBill();
 
   // Get current date string in YYYY-MM-DD for comparison and display
   const today = new Date();
@@ -41,12 +46,20 @@ export default function HomePage() {
     };
   }, [transactions, todayISO]);
 
+  // Today's Bills Logic
+  const todaysBills = bills.filter(bill => isToday(new Date(bill.date)));
+  const totalBillAmount = todaysBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0);
+
   const handlePdfClick = () => {
     window.open("https://drive.google.com/file/d/139tjA0YNeLcX-GgkvdrXgMQIGoU76NVv/view", "_blank");
   };
 
-  if (loadingTransactions) {
-    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+  if (loadingTransactions || loadingBills) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -136,6 +149,94 @@ export default function HomePage() {
         </Card>
 
       </div>
+
+      {/* Today's Bills Section */}
+      <div className="w-full space-y-6 pt-8 border-t">
+        <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold tracking-tight">Today's Bills</h2>
+            <Link href="/bill-book/new">
+                <Button size="sm">Create New Bill</Button>
+            </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Bills Generated</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{todaysBills.length}</div>
+            </CardContent>
+            </Card>
+            <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Sales (Bills)</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">₹{totalBillAmount.toFixed(2)}</div>
+            </CardContent>
+            </Card>
+        </div>
+
+        <Card>
+            <CardHeader>
+            <CardTitle>Bill Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+            {todaysBills.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                No bills generated today.
+                </div>
+            ) : (
+                <div className="rounded-md border">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Bill #</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Paid</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {todaysBills.map((bill) => {
+                        const due = bill.total_amount - bill.paid_amount;
+                        return (
+                        <TableRow key={bill.id}>
+                            <TableCell className="font-medium">{bill.bill_number}</TableCell>
+                            <TableCell>{bill.customer_name}</TableCell>
+                            <TableCell>₹{bill.total_amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-green-600">₹{bill.paid_amount.toFixed(2)}</TableCell>
+                            <TableCell>
+                            {due <= 0 ? (
+                                <Badge variant="default" className="bg-green-500 hover:bg-green-600">Paid</Badge>
+                            ) : bill.paid_amount === 0 ? (
+                                <Badge variant="destructive">Unpaid</Badge>
+                            ) : (
+                                <Badge variant="secondary" className="text-orange-600">Partial</Badge>
+                            )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => {
+                                // View Details Logic Placeholder
+                                console.log('View bill', bill.id);
+                            }}>
+                                <Eye className="w-4 h-4" />
+                            </Button>
+                            </TableCell>
+                        </TableRow>
+                        );
+                    })}
+                    </TableBody>
+                </Table>
+                </div>
+            )}
+            </CardContent>
+        </Card>
+      </div>
+
     </div>
   );
 }
