@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
-export default function CustomerLedgerPage() {
+export default function CustomerPage() {
   const { customers, bills, loadingCustomers } = useBill();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function CustomerLedgerPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Customer Ledger</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Customer</h1>
           <p className="text-muted-foreground">Track payments and dues per customer.</p>
         </div>
       </div>
