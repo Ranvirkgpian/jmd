@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import { Bill, BillSettings } from '@/lib/types';
 import { format } from 'date-fns';
 
-export const generateBillPDF = (bill: Bill, settings: BillSettings | null) => {
+export const generateBillPDF = (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -70,9 +70,18 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null) => {
   // Left side: Customer
   yPos += 10;
   doc.text(`Customer Name: ${bill.customer_name}`, margin, yPos);
-  // Add mobile/address if available (need to fetch from customer or snapshot?
-  // Bill object has customer_name. If we wanted address, we'd need to have stored it or fetch it.
-  // For now, minimal info.)
+
+  if (customerAddress) {
+    yPos += 5;
+    doc.setFontSize(9);
+    const addressLines = doc.splitTextToSize(`Address: ${customerAddress}`, (pageWidth / 2) - margin);
+    addressLines.forEach((line: string) => {
+      doc.text(line, margin, yPos);
+      yPos += 4;
+    });
+    doc.setFontSize(10);
+  }
+
   yPos += 10;
 
   // -- TABLE HEADER --
