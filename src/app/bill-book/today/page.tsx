@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BillDetails } from '@/components/bill-book/BillDetails';
-import { generateBillPDF } from '@/lib/pdfGenerator';
+import { shareOrDownloadBill } from '@/lib/pdfGenerator';
 import { Bill } from '@/lib/types';
 
 export default function TodaysBillsPage() {
@@ -29,21 +29,9 @@ export default function TodaysBillsPage() {
   const todaysBills = bills.filter(bill => isToday(new Date(bill.date)));
   const totalAmount = todaysBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0);
 
-  const handleShare = (bill: Bill) => {
+  const handleShare = async (bill: Bill) => {
     const customer = customers.find(c => c.id === bill.customer_id);
-
-    // Generate PDF
-    generateBillPDF(bill, settings, customer?.address);
-
-    // Open WhatsApp
-    let waUrl = 'https://web.whatsapp.com';
-    if (customer?.mobile_number) {
-      // Basic cleanup of phone number if needed, usually assumes 10 digits or with country code
-      // For now, passing as is.
-      waUrl = `https://wa.me/${customer.mobile_number}`;
-    }
-
-    window.open(waUrl, '_blank');
+    await shareOrDownloadBill(bill, settings, customer?.address, customer?.mobile_number);
   };
 
   if (loadingBills) {

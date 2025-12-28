@@ -55,7 +55,7 @@ const getLogoBase64 = async (): Promise<string | null> => {
   }
 };
 
-export const generateBillPDF = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
+const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -236,10 +236,60 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
       yPos += 5;
   });
 
-  // Save
+  return doc;
+};
+
+export const generateBillPDF = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
+  const doc = await createBillPDFDoc(bill, settings, customerAddress);
+
   // Format: Invoice_[customer_name]_[date].pdf
   const filenameDate = format(new Date(bill.date), 'dd-MM-yyyy');
   // Sanitize customer name for filename
   const sanitizedCustomerName = bill.customer_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   doc.save(`Invoice_${sanitizedCustomerName}_${filenameDate}.pdf`);
+};
+
+export const shareOrDownloadBill = async (bill: Bill, settings: BillSettings | null, customerAddress?: string, mobileNumber?: string) => {
+  const doc = await createBillPDFDoc(bill, settings, customerAddress);
+
+  const filenameDate = format(new Date(bill.date), 'dd-MM-yyyy');
+  const sanitizedCustomerName = bill.customer_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const filename = `Invoice_${sanitizedCustomerName}_${filenameDate}.pdf`;
+
+  // Try Native Share
+  // Check if navigator.share exists and we can share files
+  if (
+    typeof navigator !== 'undefined' &&
+    navigator.share &&
+    navigator.canShare
+  ) {
+    try {
+      const blob = doc.output('blob');
+      const file = new File([blob], filename, { type: 'application/pdf' });
+
+      const shareData = {
+        files: [file],
+        title: 'Bill Invoice',
+        text: `Invoice for ${bill.customer_name}`,
+      };
+
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return; // Success, stop here
+      }
+    } catch (error) {
+      console.error('Error sharing file:', error);
+      // Fallback to download logic below
+    }
+  }
+
+  // Fallback: Download + Open WhatsApp
+  doc.save(filename);
+
+  let waUrl = 'https://web.whatsapp.com';
+  if (mobileNumber) {
+    waUrl = `https://wa.me/${mobileNumber}`;
+  }
+
+  window.open(waUrl, '_blank');
 };
