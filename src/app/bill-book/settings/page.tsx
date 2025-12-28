@@ -21,6 +21,7 @@ interface SettingsFormValues {
   company_email: string;
   company_gst: string;
   payment_methods: string; // Comma separated for input
+  footer_message: string;
 }
 
 export default function BillSettingsPage() {
@@ -41,6 +42,7 @@ export default function BillSettingsPage() {
         company_email: settings.company_email || '',
         company_gst: settings.company_gst || '',
         payment_methods: settings.payment_methods?.join(', ') || 'Cash, UPI',
+        footer_message: settings.footer_message || '',
       });
     }
   }, [settings, form]);
@@ -56,6 +58,7 @@ export default function BillSettingsPage() {
         company_email: data.company_email,
         company_gst: data.company_gst,
         payment_methods: data.payment_methods.split(',').map(s => s.trim()).filter(Boolean),
+        footer_message: data.footer_message,
       });
       toast({
         title: "Settings Updated",
@@ -138,6 +141,12 @@ export default function BillSettingsPage() {
               <Label htmlFor="payment_methods">Payment Methods</Label>
               <Input id="payment_methods" {...form.register('payment_methods')} placeholder="Cash, UPI, Card" />
               <p className="text-xs text-muted-foreground">Comma separated values (e.g. Cash, UPI)</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="footer_message">Footer Message</Label>
+              <Textarea id="footer_message" {...form.register('footer_message')} placeholder="Terms and conditions..." className="h-24" />
+              <p className="text-xs text-muted-foreground">This message will appear at the bottom of the bill. Supports Hindi and English.</p>
             </div>
 
             <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">

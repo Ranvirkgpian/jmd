@@ -3,17 +3,58 @@ import jsPDF from 'jspdf';
 import { Bill, BillSettings } from '@/lib/types';
 import { format } from 'date-fns';
 
-export const generateBillPDF = (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
+const addHindiFonts = async (doc: jsPDF) => {
+  try {
+    const fonts = [
+      {
+        url: 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-400-normal.woff',
+        name: 'NotoSansDevanagari-Regular.ttf',
+        style: 'normal'
+      },
+      {
+        url: 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-700-normal.woff',
+        name: 'NotoSansDevanagari-Bold.ttf',
+        style: 'bold'
+      }
+    ];
+
+    await Promise.all(fonts.map(async (font) => {
+      const response = await fetch(font.url);
+      if (!response.ok) throw new Error(`Failed to fetch font ${font.style}`);
+      const buffer = await response.arrayBuffer();
+
+      const base64String = btoa(
+        new Uint8Array(buffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      doc.addFileToVFS(font.name, base64String);
+      doc.addFont(font.name, 'NotoSansDevanagari', font.style);
+    }));
+
+    return true;
+  } catch (error) {
+    console.error('Error loading Hindi fonts:', error);
+    return false;
+  }
+};
+
+export const generateBillPDF = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
   let yPos = margin;
 
+  // Load fonts
+  const fontsLoaded = await addHindiFonts(doc);
+  const fontName = fontsLoaded ? 'NotoSansDevanagari' : 'helvetica';
+
   // -- HEADER --
   // Company Name
   doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontName, "bold");
+
   const companyName = settings?.company_name || "JMD ENTERPRISES";
   const companyNameWidth = doc.getTextWidth(companyName);
   doc.text(companyName, (pageWidth - companyNameWidth) / 2, yPos);
@@ -21,7 +62,7 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null, custo
 
   // Company Details
   doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
+  doc.setFont(fontName, "normal");
 
   if (settings?.company_address) {
     const addressLines = doc.splitTextToSize(settings.company_address, pageWidth - (margin * 2));
@@ -51,10 +92,10 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null, custo
 
   // -- BILL INFO --
   doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontName, "bold");
   doc.text("INVOICE", margin, yPos);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(fontName, "normal");
   doc.setFontSize(10);
 
   // Right side: Date & Bill No
@@ -97,7 +138,7 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null, custo
   doc.setFillColor(240, 240, 240);
   doc.rect(margin, yPos - 4, pageWidth - (margin * 2), 8, 'F');
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontName, "bold");
   cols.forEach(col => {
     if (col.align === 'right') {
        doc.text(col.header, col.x + col.width, yPos + 1.5, { align: 'right' });
@@ -109,7 +150,7 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null, custo
   yPos += 8;
 
   // -- TABLE BODY --
-  doc.setFont("helvetica", "normal");
+  doc.setFont(fontName, "normal");
 
   bill.items?.forEach((item, index) => {
      const sn = (index + 1).toString();
@@ -152,7 +193,7 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null, custo
     yPos += 6;
   }
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontName, "bold");
   doc.setFontSize(12);
   doc.text("Total:", rightColX, yPos);
   doc.text(bill.total_amount.toFixed(2), valX, yPos, { align: 'right' });
@@ -160,8 +201,15 @@ export const generateBillPDF = (bill: Bill, settings: BillSettings | null, custo
 
   // -- FOOTER --
   doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("Thank you for your business!", margin, yPos);
+  doc.setFont(fontName, "normal");
+
+  const footerMessage = settings?.footer_message || "Thank you for your business!";
+  const footerLines = doc.splitTextToSize(footerMessage, pageWidth - (margin * 2));
+
+  footerLines.forEach((line: string) => {
+      doc.text(line, margin, yPos);
+      yPos += 5;
+  });
 
   // Save
   doc.save(`Invoice_${bill.bill_number}.pdf`);
