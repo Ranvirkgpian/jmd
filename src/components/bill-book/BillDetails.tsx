@@ -23,10 +23,6 @@ export const BillDetails: React.FC<BillDetailsProps> = ({ bill, settings, custom
              <div className="text-muted-foreground">{customer.address}</div>
           )}
         </div>
-        <div className="text-right">
-          <span className="font-semibold text-muted-foreground">Bill #:</span>
-          <div className="text-lg">{bill.bill_number}</div>
-        </div>
         <div>
           <span className="font-semibold text-muted-foreground">Date:</span>
           <div>{format(new Date(bill.date), 'PPP')}</div>

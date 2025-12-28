@@ -39,6 +39,22 @@ const addHindiFonts = async (doc: jsPDF) => {
   }
 };
 
+const getLogoBase64 = async (): Promise<string | null> => {
+  try {
+    const response = await fetch('/logo.png');
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error loading logo:', error);
+    return null;
+  }
+};
+
 export const generateBillPDF = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -50,6 +66,19 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
   const fontsLoaded = await addHindiFonts(doc);
   const fontName = fontsLoaded ? 'NotoSansDevanagari' : 'helvetica';
 
+  // Load Logo
+  const logoBase64 = await getLogoBase64();
+  if (logoBase64) {
+    // Add logo to top center
+    const logoWidth = 30;
+    const logoHeight = 20;
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.addImage(logoBase64, 'PNG', logoX, yPos, logoWidth, logoHeight);
+
+    // Increment yPos to be below the logo
+    yPos += logoHeight + 5;
+  }
+
   // -- HEADER --
   // Company Name
   doc.setFontSize(22);
@@ -57,8 +86,8 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
 
   const companyName = settings?.company_name || "JMD ENTERPRISES";
   const companyNameWidth = doc.getTextWidth(companyName);
-  doc.text(companyName, (pageWidth - companyNameWidth) / 2, yPos);
-  yPos += 8;
+  doc.text(companyName, (pageWidth - companyNameWidth) / 2, yPos + 10);
+  yPos += 18;
 
   // Company Details
   doc.setFontSize(10);
@@ -98,15 +127,11 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
   doc.setFont(fontName, "normal");
   doc.setFontSize(10);
 
-  // Right side: Date & Bill No
-  const billNoText = `Bill No: ${bill.bill_number}`;
+  // Right side: Date only (Bill No removed)
   const dateText = `Date: ${format(new Date(bill.date), 'dd/MM/yyyy')}`;
-
-  const billNoWidth = doc.getTextWidth(billNoText);
   const dateWidth = doc.getTextWidth(dateText);
 
-  doc.text(billNoText, pageWidth - margin - billNoWidth, yPos);
-  doc.text(dateText, pageWidth - margin - dateWidth, yPos + 5);
+  doc.text(dateText, pageWidth - margin - dateWidth, yPos);
 
   // Left side: Customer
   yPos += 10;
@@ -212,5 +237,9 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
   });
 
   // Save
-  doc.save(`Invoice_${bill.bill_number}.pdf`);
+  // Format: Invoice_[customer_name]_[date].pdf
+  const filenameDate = format(new Date(bill.date), 'dd-MM-yyyy');
+  // Sanitize customer name for filename
+  const sanitizedCustomerName = bill.customer_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  doc.save(`Invoice_${sanitizedCustomerName}_${filenameDate}.pdf`);
 };
