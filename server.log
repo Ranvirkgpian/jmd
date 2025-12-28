@@ -7,25 +7,17 @@
    - Network:      http://192.168.0.2:9002
 
  ✓ Starting...
- ✓ Ready in 1481ms
+ ✓ Ready in 1468ms
  ○ Compiling /login ...
- ✓ Compiled /login in 7.5s
- GET /login 200 in 8384ms
+ ✓ Compiled /login in 8.3s
+ GET /login 200 in 10199ms
  ○ Compiling / ...
- ✓ Compiled / in 1062ms
- GET / 200 in 1176ms
- GET / 200 in 106ms
- ○ Compiling /bill-book/settings ...
- ✓ Compiled /bill-book/settings in 969ms
- GET /bill-book/settings 200 in 1188ms
- GET /bill-book/settings 200 in 170ms
- GET /login 200 in 423ms
- GET / 200 in 140ms
- GET / 200 in 215ms
- GET /bill-book/settings 200 in 203ms
- GET /bill-book/settings 200 in 202ms
- GET /login 200 in 167ms
- GET / 200 in 116ms
- GET / 200 in 100ms
- GET /bill-book/settings 200 in 181ms
- GET /bill-book/settings 200 in 140ms
+ ✓ Compiled / in 1196ms
+ GET / 200 in 1363ms
+ GET / 200 in 190ms
+ ○ Compiling /bill-book/today ...
+ ✓ Compiled /bill-book/today in 4s
+ GET /bill-book/today 200 in 4567ms
+ ○ Compiling /bill-book/history ...
+ ✓ Compiled /bill-book/history in 1114ms
+ GET /bill-book/history 200 in 1439ms

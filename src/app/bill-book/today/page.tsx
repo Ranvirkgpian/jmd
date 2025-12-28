@@ -106,7 +106,6 @@ export default function TodaysBillsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Bill #</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead className="text-center">Share</TableHead>
@@ -117,7 +116,6 @@ export default function TodaysBillsPage() {
                   {todaysBills.map((bill) => {
                     return (
                       <TableRow key={bill.id}>
-                        <TableCell className="font-medium">{bill.bill_number}</TableCell>
                         <TableCell>{bill.customer_name}</TableCell>
                         <TableCell>₹{bill.total_amount.toFixed(2)}</TableCell>
                         <TableCell className="text-center">

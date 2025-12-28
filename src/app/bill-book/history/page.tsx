@@ -102,7 +102,6 @@ export default function BillHistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Bill #</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -115,7 +114,6 @@ export default function BillHistoryPage() {
                   return (
                     <TableRow key={bill.id}>
                       <TableCell>{format(new Date(bill.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell className="font-medium">{bill.bill_number}</TableCell>
                       <TableCell>{bill.customer_name}</TableCell>
                       <TableCell>₹{bill.total_amount}</TableCell>
                       <TableCell className="text-right flex justify-end gap-2">
