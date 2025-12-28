@@ -111,6 +111,7 @@ export interface BillSettings {
   company_email?: string;
   company_gst?: string;
   payment_methods: string[];
+  footer_message?: string;
 }
 
 export interface BillContextType {
@@ -323,6 +324,7 @@ export interface Database {
           company_email: string | null;
           company_gst: string | null;
           payment_methods: unknown | null;
+          footer_message: string | null;
           created_at: string;
         };
         Insert: {
@@ -334,6 +336,7 @@ export interface Database {
           company_email?: string | null;
           company_gst?: string | null;
           payment_methods?: unknown | null;
+          footer_message?: string | null;
           created_at?: string;
         };
         Update: {
@@ -345,6 +348,7 @@ export interface Database {
           company_email?: string | null;
           company_gst?: string | null;
           payment_methods?: unknown | null;
+          footer_message?: string | null;
           created_at?: string;
         };
       };
