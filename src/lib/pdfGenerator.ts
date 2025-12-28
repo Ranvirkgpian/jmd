@@ -69,17 +69,14 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
   // Load Logo
   const logoBase64 = await getLogoBase64();
   if (logoBase64) {
-    // Add logo to top left
-    // Adjust dimensions as needed. Assuming square-ish or wide logo.
-    // Let's make it 30 units wide, maintain aspect ratio if possible but here we fix width.
+    // Add logo to top center
     const logoWidth = 30;
-    const logoHeight = 20; // Approximate
-    doc.addImage(logoBase64, 'PNG', margin, yPos, logoWidth, logoHeight);
+    const logoHeight = 20;
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.addImage(logoBase64, 'PNG', logoX, yPos, logoWidth, logoHeight);
 
-    // If we have a logo, we might want to start text a bit lower or same line but shifted.
-    // However, usually header text is centered.
-    // Let's keep text centered, but ensure it doesn't overlap if logo is large.
-    // Since logo is top-left, centered text should be fine unless very wide.
+    // Increment yPos to be below the logo
+    yPos += logoHeight + 5;
   }
 
   // -- HEADER --

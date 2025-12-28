@@ -21,3 +21,5 @@
  ○ Compiling /bill-book/history ...
  ✓ Compiled /bill-book/history in 1114ms
  GET /bill-book/history 200 in 1439ms
+ ELIFECYCLE  Command failed.
+[?25h
