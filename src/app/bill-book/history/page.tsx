@@ -73,7 +73,7 @@ export default function BillHistoryPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/bill-book">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
@@ -90,6 +90,7 @@ export default function BillHistoryPage() {
               <Input
                 type="search"
                 placeholder="Search by customer, bill number, or date..."
+                aria-label="Search bills"
                 className="pl-8 max-w-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -119,7 +120,12 @@ export default function BillHistoryPage() {
                       <TableCell className="text-right flex justify-end gap-2">
                          <Dialog>
                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" onClick={() => setSelectedBillId(bill.id)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedBillId(bill.id)}
+                                aria-label={`View details for bill ${bill.customer_name}`}
+                              >
                                 <Eye className="w-4 h-4 text-blue-500" />
                               </Button>
                            </DialogTrigger>
@@ -137,7 +143,7 @@ export default function BillHistoryPage() {
 
                          <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" aria-label={`Delete bill for ${bill.customer_name}`}>
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
                           </AlertDialogTrigger>
