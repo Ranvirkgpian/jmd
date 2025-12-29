@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { Landmark, LogIn, Loader2, User, Lock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
+import { loginAction } from './actions';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 10 },
@@ -92,9 +93,13 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 800)); // Slightly longer realistic delay
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
 
-    if (username === 'JMD' && password === '311976') {
+    const result = await loginAction(formData);
+
+    if (result.success) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.removeItem('loginAttempts');
       localStorage.removeItem('loginLockoutTime');
