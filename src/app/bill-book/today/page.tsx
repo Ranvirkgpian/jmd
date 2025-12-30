@@ -46,7 +46,7 @@ export default function TodaysBillsPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/bill-book">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
@@ -112,15 +112,21 @@ export default function TodaysBillsPage() {
                             size="sm"
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={() => handleShare(bill)}
+                            aria-label={`Share bill for ${bill.customer_name}`}
                           >
                             <MessageCircle className="w-5 h-5" />
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => {
-                             setSelectedBill(bill);
-                             setIsViewOpen(true);
-                          }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedBill(bill);
+                              setIsViewOpen(true);
+                            }}
+                            aria-label={`View details for bill ${bill.customer_name}`}
+                          >
                             <Eye className="w-4 h-4 text-blue-500" />
                           </Button>
                         </TableCell>
