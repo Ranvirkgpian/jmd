@@ -12,6 +12,7 @@ import { ConfirmationDialog } from '@/components/dialogs/ConfirmationDialog';
 import { PlusCircle, Edit3, Trash2, Eye, PackageSearch, Loader2, Search, Phone, MapPin, Store, ChevronRight, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from '@/hooks/use-debounce';
 import { motion, AnimatePresence } from "framer-motion";
 
 const container = {
@@ -44,6 +45,8 @@ export default function ShopkeepersPage() {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [shopkeeperToDelete, setShopkeeperToDelete] = useState<Shopkeeper | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // Optimization: Debounce search query to prevent excessive re-renders and filtering on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -86,13 +89,13 @@ export default function ShopkeepersPage() {
   };
 
   const filteredShopkeepers = useMemo(() => {
-    if (!searchQuery) {
+    if (!debouncedSearchQuery) {
       return shopkeepers;
     }
     return shopkeepers.filter(shopkeeper =>
-      shopkeeper.name.toLowerCase().includes(searchQuery.toLowerCase())
+      shopkeeper.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
-  }, [shopkeepers, searchQuery]);
+  }, [shopkeepers, debouncedSearchQuery]);
 
 
   if (!isMounted || loadingShopkeepers) {
@@ -218,7 +221,7 @@ export default function ShopkeepersPage() {
               </div>
               <h3 className="text-lg font-medium">No results found</h3>
               <p className="text-muted-foreground max-w-sm mx-auto">
-                We couldn't find any shopkeepers matching "{searchQuery}". Try a different search term.
+                We couldn't find any shopkeepers matching "{debouncedSearchQuery}". Try a different search term.
               </p>
               <Button
                 variant="outline"
