@@ -12,22 +12,13 @@ This information is used to shape Next.js' roadmap and prioritize features.
 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
 https://nextjs.org/telemetry
 
- ✓ Ready in 1579ms
+ ✓ Ready in 1740ms
  ○ Compiling /login ...
- ✓ Compiled /login in 8.4s
- GET /login 200 in 9351ms
- POST /login 200 in 137ms
- GET /login 200 in 185ms
- POST /login 200 in 112ms
- ○ Compiling /bill-book/customer ...
- ✓ Compiled /bill-book/customer in 1416ms
- GET /bill-book/customer 200 in 1612ms
- GET /login 200 in 144ms
- GET /login 200 in 171ms
- POST /login 200 in 112ms
- ○ Compiling / ...
- ✓ Compiled / in 854ms
- GET / 200 in 1003ms
- GET / 200 in 158ms
- GET /bill-book/customer 200 in 196ms
+ ✓ Compiled /login in 10.7s
+ GET /login 200 in 11974ms
+ ○ Compiling /graph ...
+ GET / 200 in 5417ms
+ ✓ Compiled /graph in 7.8s
+ GET /graph 200 in 8448ms
+ ELIFECYCLE  Command failed.
 [?25h
