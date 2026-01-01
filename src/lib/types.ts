@@ -122,6 +122,7 @@ export interface BillContextType {
   bills: Bill[];
   loadingBills: boolean;
   addBill: (bill: Omit<Bill, 'id' | 'bill_number' | 'created_at' | 'deleted_at' | 'items'>, items: Omit<BillItem, 'id' | 'bill_id'>[]) => Promise<void>;
+  updateBill: (id: string, bill: Omit<Bill, 'id' | 'bill_number' | 'created_at' | 'deleted_at' | 'items'>, items: Omit<BillItem, 'id' | 'bill_id'>[]) => Promise<void>;
   deleteBill: (id: string) => Promise<void>; // Soft delete
 
   settings: BillSettings | null;

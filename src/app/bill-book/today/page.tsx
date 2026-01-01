@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, FileText, ArrowLeft, Loader2, MessageCircle } from 'lucide-react';
+import { Eye, FileText, ArrowLeft, Loader2, MessageCircle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -19,9 +19,11 @@ import {
 import { BillDetails } from '@/components/bill-book/BillDetails';
 import { shareOrDownloadBill } from '@/lib/pdfGenerator';
 import { Bill } from '@/lib/types';
+import { useData } from '@/contexts/DataContext';
 
 export default function TodaysBillsPage() {
   const { bills, customers, settings, loadingBills } = useBill();
+  const { transactions, shopkeepers } = useData();
   const router = useRouter();
   const [selectedBill, setSelectedBill] = React.useState<Bill | null>(null);
   const [isViewOpen, setIsViewOpen] = React.useState(false);
@@ -29,9 +31,22 @@ export default function TodaysBillsPage() {
   const todaysBills = bills.filter(bill => isToday(new Date(bill.date)));
   const totalAmount = todaysBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0);
 
+  const getDueAmount = (customerName: string) => {
+    const shopkeeper = shopkeepers.find(s => s.name.toLowerCase() === customerName.toLowerCase());
+    if (shopkeeper) {
+      const shopkeeperTransactions = transactions.filter(t => t.shopkeeperId === shopkeeper.id);
+      const totalGoodsGiven = shopkeeperTransactions.reduce((sum, t) => sum + t.goodsGiven, 0);
+      const totalMoneyReceived = shopkeeperTransactions.reduce((sum, t) => sum + t.moneyReceived, 0);
+      const balance = totalGoodsGiven - totalMoneyReceived;
+      return balance < 0 ? 0 : balance;
+    }
+    return undefined;
+  };
+
   const handleShare = async (bill: Bill) => {
     const customer = customers.find(c => c.id === bill.customer_id);
-    await shareOrDownloadBill(bill, settings, customer?.address, customer?.mobile_number);
+    const dueAmount = getDueAmount(bill.customer_name);
+    await shareOrDownloadBill(bill, settings, customer?.address, customer?.mobile_number, dueAmount);
   };
 
   if (loadingBills) {
@@ -118,17 +133,27 @@ export default function TodaysBillsPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedBill(bill);
-                              setIsViewOpen(true);
-                            }}
-                            aria-label={`View details for bill ${bill.customer_name}`}
-                          >
-                            <Eye className="w-4 h-4 text-blue-500" />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                             <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(`/bill-book/new?edit=${bill.id}`)}
+                                aria-label={`Edit bill for ${bill.customer_name}`}
+                              >
+                                <Pencil className="w-4 h-4 text-orange-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedBill(bill);
+                                  setIsViewOpen(true);
+                                }}
+                                aria-label={`View details for bill ${bill.customer_name}`}
+                              >
+                                <Eye className="w-4 h-4 text-blue-500" />
+                              </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

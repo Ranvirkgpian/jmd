@@ -55,13 +55,15 @@ interface BillFormValues {
 function CreateBillForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { customers, addCustomer, addBill, settings } = useBill();
+  const { customers, bills, addCustomer, addBill, updateBill, settings } = useBill();
   const { products, shopkeepers } = useData();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editBillId, setEditBillId] = useState<string | null>(null);
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<BillFormValues>({
+  const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<BillFormValues>({
     defaultValues: {
       date: new Date(),
       items: [{ productName: '', quantity: 1, rate: 0, amount: 0 }],
@@ -81,10 +83,40 @@ function CreateBillForm() {
     name: "items"
   });
 
-  // Handle URL query param for customerId
+  // Handle URL query param for customerId or edit
   useEffect(() => {
+    const queryEditId = searchParams.get('edit');
     const queryCustomerId = searchParams.get('customerId');
-    if (queryCustomerId) {
+
+    if (queryEditId) {
+      // Edit Mode
+      setEditMode(true);
+      setEditBillId(queryEditId);
+      const billToEdit = bills.find(b => b.id === queryEditId);
+
+      if (billToEdit) {
+        const customer = customers.find(c => c.id === billToEdit.customer_id);
+
+        reset({
+          customerId: billToEdit.customer_id,
+          customerName: billToEdit.customer_name,
+          customerMobile: customer?.mobile_number || '',
+          customerAddress: customer?.address || '',
+          date: new Date(billToEdit.date),
+          items: billToEdit.items?.map(item => ({
+            productName: item.product_name,
+            quantity: item.quantity,
+            rate: item.rate,
+            amount: item.amount
+          })) || [],
+          discount: billToEdit.discount_amount,
+          tax: billToEdit.tax_amount,
+          paidAmount: billToEdit.paid_amount,
+          paymentMethod: billToEdit.payment_method || 'Cash'
+        });
+      }
+    } else if (queryCustomerId) {
+      // New Bill with Pre-filled Customer
       const existingCustomer = customers.find(c => c.id === queryCustomerId);
       if (existingCustomer) {
         setValue('customerId', existingCustomer.id);
@@ -93,7 +125,7 @@ function CreateBillForm() {
         setValue('customerAddress', existingCustomer.address || '');
       }
     }
-  }, [searchParams, customers, setValue]);
+  }, [searchParams, customers, bills, setValue, reset]);
 
   // Watch values for calculations
   const items = watch('items');
@@ -140,7 +172,7 @@ function CreateBillForm() {
          }
       }
 
-      await addBill({
+      const billPayload = {
         customer_id: finalCustomerId,
         customer_name: data.customerName,
         date: data.date.toISOString(),
@@ -150,23 +182,35 @@ function CreateBillForm() {
         total_amount: totalAmount,
         paid_amount: data.paidAmount,
         payment_method: data.paymentMethod,
-      }, data.items.map(item => ({
+      };
+
+      const itemsPayload = data.items.map(item => ({
         product_name: item.productName,
         quantity: item.quantity,
         rate: item.rate,
         amount: item.amount
-      })));
+      }));
 
-      toast({
-        title: "Bill Created",
-        description: "The bill has been successfully generated.",
-      });
+      if (editMode && editBillId) {
+         await updateBill(editBillId, billPayload, itemsPayload);
+         toast({
+          title: "Bill Updated",
+          description: "The bill has been successfully updated.",
+        });
+      } else {
+        await addBill(billPayload, itemsPayload);
+        toast({
+          title: "Bill Created",
+          description: "The bill has been successfully generated.",
+        });
+      }
+
       router.push('/bill-book/today'); // Redirect to today's bills
     } catch (error) {
       console.error(error);
       toast({
         title: "Error",
-        description: "Failed to create bill.",
+        description: `Failed to ${editMode ? 'update' : 'create'} bill.`,
         variant: "destructive"
       });
     } finally {
@@ -182,7 +226,7 @@ function CreateBillForm() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Create New Bill</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{editMode ? 'Edit Bill' : 'Create New Bill'}</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -454,7 +498,7 @@ function CreateBillForm() {
            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
            <Button type="submit" size="lg" disabled={isSubmitting}>
              {isSubmitting && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
-             Save & Generate Bill
+             {editMode ? 'Update Bill' : 'Save & Generate Bill'}
            </Button>
         </div>
 

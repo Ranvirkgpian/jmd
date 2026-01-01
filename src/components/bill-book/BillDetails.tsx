@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Bill, BillSettings, BillCustomer } from '@/lib/types';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +13,23 @@ interface BillDetailsProps {
 }
 
 export const BillDetails: React.FC<BillDetailsProps> = ({ bill, settings, customer }) => {
+  const { transactions, shopkeepers } = useData();
+
+  const dueAmount = useMemo(() => {
+    // Attempt to find shopkeeper by name
+    const shopkeeper = shopkeepers.find(s => s.name.toLowerCase() === bill.customer_name.toLowerCase());
+
+    if (shopkeeper) {
+      const shopkeeperTransactions = transactions.filter(t => t.shopkeeperId === shopkeeper.id);
+      const totalGoodsGiven = shopkeeperTransactions.reduce((sum, t) => sum + t.goodsGiven, 0);
+      const totalMoneyReceived = shopkeeperTransactions.reduce((sum, t) => sum + t.moneyReceived, 0);
+      const balance = totalGoodsGiven - totalMoneyReceived;
+      // Requirement: If balance < 0, due amount is 0
+      return balance < 0 ? 0 : balance;
+    }
+    return undefined;
+  }, [bill.customer_name, shopkeepers, transactions]);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 text-sm">
@@ -84,7 +101,7 @@ export const BillDetails: React.FC<BillDetailsProps> = ({ bill, settings, custom
       </div>
 
       <div className="flex justify-center pt-4">
-         <Button variant="outline" onClick={() => generateBillPDF(bill, settings, customer?.address)}>
+         <Button variant="outline" onClick={() => generateBillPDF(bill, settings, customer?.address, dueAmount)}>
            <Download className="mr-2 w-4 h-4" /> Download PDF
          </Button>
       </div>
