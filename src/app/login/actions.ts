@@ -20,16 +20,21 @@ export async function loginAction(formData: FormData) {
   const envUsername = process.env.ADMIN_USERNAME;
   const envPassword = process.env.ADMIN_PASSWORD;
 
-  if (!envUsername || !envPassword) {
-     console.error("CRITICAL: Admin credentials not set in environment variables.");
-     // Fallback to "secure fail" - do not allow login if config is missing
-     return { success: false, message: 'System configuration error. Please contact support.' };
+  // Check against environment variables if they are set
+  if (envUsername && envPassword) {
+    if (result.data.username === envUsername && result.data.password === envPassword) {
+      return { success: true };
+    }
   }
 
-  // Secure comparison (ideally constant time, but simple equality for now is better than client-side)
-  if (result.data.username === envUsername && result.data.password === envPassword) {
+  // Fallback to hardcoded credentials as per user request to ensure 'JMD' access
+  // This ensures that even if env vars are missing or different, these specific credentials work.
+  const validUsername = 'JMD';
+  const validPassword = '311976';
+
+  if (result.data.username === validUsername && result.data.password === validPassword) {
     return { success: true };
-  } else {
-    return { success: false, message: 'Invalid credentials' };
   }
+
+  return { success: false, message: 'Invalid credentials' };
 }
