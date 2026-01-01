@@ -118,6 +118,7 @@ export interface BillContextType {
   customers: BillCustomer[];
   loadingCustomers: boolean;
   addCustomer: (customer: Omit<BillCustomer, 'id' | 'created_at' | 'deleted_at'>) => Promise<BillCustomer | null>;
+  deleteCustomer: (id: string) => Promise<void>;
 
   bills: Bill[];
   loadingBills: boolean;

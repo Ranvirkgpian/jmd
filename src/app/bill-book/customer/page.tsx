@@ -6,13 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, ChevronRight, ChevronDown, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Search, ChevronRight, ChevronDown, PlusCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 
 export default function CustomerPage() {
-  const { customers, bills, loadingCustomers } = useBill();
+  const { customers, bills, loadingCustomers, deleteCustomer } = useBill();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
 
@@ -78,6 +89,7 @@ export default function CustomerPage() {
                   <TableHead className="text-right">Total Billed</TableHead>
                   <TableHead className="text-right">Total Received</TableHead>
                   <TableHead className="text-right">Total Due</TableHead>
+                  <TableHead className="w-[50px]">Delete</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -101,6 +113,33 @@ export default function CustomerPage() {
                         ) : (
                           <span className="text-green-500">Paid</span>
                         )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                         <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/90">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action will permanently delete this customer.
+                                Existing bills will remain in history but will no longer be linked to this customer profile.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteCustomer(customer.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                       <TableCell>
                          <Button asChild size="icon" variant="ghost" title="Create Bill" onClick={(e) => e.stopPropagation()}>
