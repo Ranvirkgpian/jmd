@@ -146,6 +146,67 @@ export const BillProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateBill = async (
+    id: string,
+    billData: Omit<Bill, 'id' | 'bill_number' | 'created_at' | 'deleted_at' | 'items'>,
+    itemsData: Omit<BillItem, 'id' | 'bill_id'>[]
+  ) => {
+    try {
+      // 1. Update Bill Header
+      const { data: bill, error: billError } = await supabase
+        .from('bills')
+        .update({
+          customer_id: billData.customer_id,
+          customer_name: billData.customer_name,
+          date: billData.date,
+          subtotal: billData.subtotal,
+          discount_amount: billData.discount_amount,
+          tax_amount: billData.tax_amount,
+          total_amount: billData.total_amount,
+          paid_amount: billData.paid_amount,
+          payment_method: billData.payment_method
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (billError) throw billError;
+
+      // 2. Delete existing items
+      const { error: deleteItemsError } = await supabase
+        .from('bill_items')
+        .delete()
+        .eq('bill_id', id);
+
+      if (deleteItemsError) throw deleteItemsError;
+
+      // 3. Insert New Items
+      const itemsWithBillId = itemsData.map(item => ({
+        ...item,
+        bill_id: id
+      }));
+
+      const { data: items, error: itemsError } = await supabase
+        .from('bill_items')
+        .insert(itemsWithBillId)
+        .select();
+
+      if (itemsError) throw itemsError;
+
+      // 4. Update Local State
+      const updatedBill: Bill = {
+        ...(bill as Bill),
+        items: items as BillItem[]
+      };
+
+      setBills(prev => prev.map(b => b.id === id ? updatedBill : b));
+
+    } catch (error) {
+      console.error('Error updating bill:', error);
+      throw error;
+    }
+  };
+
   const deleteBill = async (id: string) => {
     try {
       const { error } = await supabase
@@ -199,6 +260,7 @@ export const BillProvider = ({ children }: { children: ReactNode }) => {
       bills,
       loadingBills,
       addBill,
+      updateBill,
       deleteBill,
       settings,
       loadingSettings,

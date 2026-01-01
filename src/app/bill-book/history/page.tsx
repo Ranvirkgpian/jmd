@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Trash2, ArrowLeft, Search, Loader2 } from 'lucide-react';
+import { Eye, Trash2, ArrowLeft, Search, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ import { BillDetails } from '@/components/bill-book/BillDetails';
 
 export default function BillHistoryPage() {
   const { bills, customers, settings, deleteBill, loadingBills } = useBill();
+  const router = useRouter();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
@@ -118,6 +120,14 @@ export default function BillHistoryPage() {
                       <TableCell>{bill.customer_name}</TableCell>
                       <TableCell>₹{bill.total_amount}</TableCell>
                       <TableCell className="text-right flex justify-end gap-2">
+                         <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/bill-book/new?edit=${bill.id}`)}
+                            aria-label={`Edit bill for ${bill.customer_name}`}
+                          >
+                            <Pencil className="w-4 h-4 text-orange-500" />
+                          </Button>
                          <Dialog>
                            <DialogTrigger asChild>
                               <Button

@@ -55,7 +55,7 @@ const getLogoBase64 = async (): Promise<string | null> => {
   }
 };
 
-const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
+const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, customerAddress?: string, dueAmount?: number) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -224,6 +224,13 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
   doc.text(bill.total_amount.toFixed(2), valX, yPos, { align: 'right' });
   yPos += 10;
 
+  if (dueAmount !== undefined) {
+    doc.setFontSize(14);
+    doc.text("Due Amount:", rightColX - 10, yPos);
+    doc.text(`Rs. ${dueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, valX, yPos, { align: 'right' });
+    yPos += 10;
+  }
+
   // -- FOOTER --
   doc.setFontSize(9);
   doc.setFont(fontName, "normal");
@@ -239,8 +246,8 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
   return doc;
 };
 
-export const generateBillPDF = async (bill: Bill, settings: BillSettings | null, customerAddress?: string) => {
-  const doc = await createBillPDFDoc(bill, settings, customerAddress);
+export const generateBillPDF = async (bill: Bill, settings: BillSettings | null, customerAddress?: string, dueAmount?: number) => {
+  const doc = await createBillPDFDoc(bill, settings, customerAddress, dueAmount);
 
   // Format: Invoice_[customer_name]_[date].pdf
   const filenameDate = format(new Date(bill.date), 'dd-MM-yyyy');
@@ -249,8 +256,8 @@ export const generateBillPDF = async (bill: Bill, settings: BillSettings | null,
   doc.save(`Invoice_${sanitizedCustomerName}_${filenameDate}.pdf`);
 };
 
-export const shareOrDownloadBill = async (bill: Bill, settings: BillSettings | null, customerAddress?: string, mobileNumber?: string) => {
-  const doc = await createBillPDFDoc(bill, settings, customerAddress);
+export const shareOrDownloadBill = async (bill: Bill, settings: BillSettings | null, customerAddress?: string, mobileNumber?: string, dueAmount?: number) => {
+  const doc = await createBillPDFDoc(bill, settings, customerAddress, dueAmount);
 
   const filenameDate = format(new Date(bill.date), 'dd-MM-yyyy');
   const sanitizedCustomerName = bill.customer_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();

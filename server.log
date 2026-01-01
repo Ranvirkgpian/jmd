@@ -1,25 +1,40 @@
 
 > nextn@0.1.0 dev /app
-> next dev --turbopack -p 9002
+> next dev --turbopack -p 9002 -p 9002
 
    ▲ Next.js 15.5.9 (Turbopack)
    - Local:        http://localhost:9002
    - Network:      http://192.168.0.2:9002
 
  ✓ Starting...
- ✓ Ready in 1468ms
+ ✓ Ready in 1511ms
  ○ Compiling /login ...
  ✓ Compiled /login in 8.3s
- GET /login 200 in 10199ms
+ GET /login 200 in 9104ms
+ POST /login 200 in 138ms
  ○ Compiling / ...
- ✓ Compiled / in 1196ms
- GET / 200 in 1363ms
- GET / 200 in 190ms
- ○ Compiling /bill-book/today ...
- ✓ Compiled /bill-book/today in 4s
- GET /bill-book/today 200 in 4567ms
+ ✓ Compiled / in 1396ms
+ GET / 200 in 1505ms
+ GET / 200 in 113ms
  ○ Compiling /bill-book/history ...
- ✓ Compiled /bill-book/history in 1114ms
- GET /bill-book/history 200 in 1439ms
- ELIFECYCLE  Command failed.
-[?25h
+ ✓ Compiled /bill-book/history in 4.3s
+ GET /bill-book/history 200 in 4910ms
+ ○ Compiling /reports ...
+ ✓ Compiled /reports in 2.5s
+ GET /reports 200 in 2912ms
+ GET /login 200 in 178ms
+ POST /login 200 in 116ms
+ GET / 200 in 149ms
+ GET / 200 in 112ms
+ ○ Compiling /bill-book/new ...
+ ✓ Compiled /bill-book/new in 1254ms
+ GET /bill-book/new 200 in 1452ms
+ GET /login 200 in 148ms
+ POST /login 200 in 118ms
+ GET / 200 in 121ms
+ GET / 200 in 107ms
+ ○ Compiling /bill-book/today ...
+ ✓ Compiled /bill-book/today in 1364ms
+ GET /bill-book/today 200 in 1589ms
+ GET /bill-book/new?edit=test-bill-id 200 in 111ms
+ GET /bill-book/history 200 in 163ms

@@ -56,12 +56,12 @@ export default function ReportsPage() {
     const totalGoodsGiven = filteredTransactions.reduce((sum, t) => sum + t.goodsGiven, 0);
     const totalMoneyReceived = filteredTransactions.reduce((sum, t) => sum + t.moneyReceived, 0);
     const balance = totalGoodsGiven - totalMoneyReceived;
+    const dueAmount = balance < 0 ? 0 : balance;
     return {
       totalGoodsGiven,
       totalMoneyReceived,
       balance,
-      balanceType: balance > 0 ? "Outstanding" : balance < 0 ? "Advance" : "Settled",
-      balanceAmount: Math.abs(balance),
+      dueAmount,
     };
   }, [filteredTransactions]);
 
@@ -190,20 +190,17 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className={`shadow-md hover:shadow-lg transition-shadow border-l-4 ${summary.balance > 0 ? 'border-l-red-500' : summary.balance < 0 ? 'border-l-green-500' : 'border-l-gray-400'}`}>
+        <Card className={`shadow-md hover:shadow-lg transition-shadow border-l-4 ${summary.balance > 0 ? 'border-l-red-500' : 'border-l-gray-400'}`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Net Balance</CardTitle>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Due Amount</CardTitle>
              <div className="bg-gray-100 p-2 rounded-full">
                <ReceiptIndianRupee className="h-4 w-4 text-gray-600" />
              </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${summary.balance > 0 ? 'text-red-600' : summary.balance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
-              ₹{summary.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            <div className={`text-2xl font-bold ${summary.balance > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+              ₹{summary.dueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground mt-1 font-medium">
-              {summary.balanceType}
-            </p>
           </CardContent>
         </Card>
       </motion.div>
