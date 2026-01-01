@@ -2,425 +2,512 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
+import { supabase } from '@/lib/supabaseClient';
 import {
   Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer,
-  Line, LineChart, Pie, PieChart, Cell
+  Line, LineChart, Tooltip, Legend
 } from 'recharts';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
 import { DatePicker } from '@/components/ui/datepicker';
 import { Button } from '@/components/ui/button';
-import { format, parseISO, startOfMonth, eachMonthOfInterval, subMonths, startOfDay, endOfDay } from 'date-fns';
-import { PackageSearch, Loader2, Filter, XCircle } from 'lucide-react';
+import {
+  format,
+  parseISO,
+  startOfDay,
+  endOfDay,
+  subMonths,
+  startOfMonth,
+  isWithinInterval,
+  subDays,
+  differenceInDays
+} from 'date-fns';
+import {
+  Loader2,
+  Filter,
+  XCircle,
+  DollarSign,
+  ShoppingCart,
+  Package,
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  Activity
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 
-interface MonthlyData {
-  month: string;
-  totalGoodsGiven: number;
-  fill?: string;
+// --- Types ---
+
+interface ChartDataPoint {
+  date: string; // formatted date string for axis
+  fullDate: Date; // for sorting
+  sales: number; // Goods Given
 }
 
-interface TopShopkeeperData {
-  name: string;
-  totalGoodsGiven: number;
-  fill: string;
-}
+interface SummaryMetrics {
+  totalSales: number;
+  totalMoneyReceived: number;
+  itemsSold: number;
+  inventoryValue: number; // Placeholder
+  inventoryCount: number; // Placeholder
 
-interface ProcessedChartData {
-  monthlyData: MonthlyData[];
-  topShopkeepersData: TopShopkeeperData[];
-  label: string;
-  description: string;
-  pieConfig: ChartConfig;
+  prevTotalSales: number;
+  prevTotalMoneyReceived: number;
+  prevItemsSold: number;
 }
-
-const chartConfig = {
-  totalGoodsGiven: {
-    label: 'Goods Given (₹)',
-    color: 'hsl(var(--primary))',
-  },
-} satisfies ChartConfig;
 
 export default function GraphPage() {
-  const { transactions, loadingTransactions, shopkeepers } = useData();
+  const { transactions, loadingTransactions, products, loadingProducts } = useData();
   const [isMounted, setIsMounted] = useState(false);
-  const [filterStartDate, setFilterStartDate] = useState<Date | undefined>(undefined);
-  const [filterEndDate, setFilterEndDate] = useState<Date | undefined>(undefined);
+
+  // Date Filters
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+  // Extra Data State
+  const [billItemsCount, setBillItemsCount] = useState<number>(0);
+  const [prevBillItemsCount, setPrevBillItemsCount] = useState<number>(0);
+  const [loadingBillStats, setLoadingBillStats] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    // Default to last 3 months if no date selected
+    if (!startDate && !endDate) {
+        const now = new Date();
+        setStartDate(subMonths(startOfMonth(now), 2)); // Start of 3 months ago
+        setEndDate(endOfDay(now));
+    }
   }, []);
 
-  const processedChartData: ProcessedChartData = useMemo(() => {
-    if (loadingTransactions || !isMounted) {
-      return { 
-        monthlyData: [],
-        topShopkeepersData: [],
-        label: "Monthly Goods Given Analysis", 
-        description: "Loading graph data...",
-        pieConfig: {}
+  // --- Fetch Bill Items for "Items Sold" ---
+  useEffect(() => {
+    const fetchBillStats = async () => {
+      if (!startDate || !endDate) return;
+      setLoadingBillStats(true);
+
+      try {
+        // 1. Fetch Bills in range
+        const { data: bills, error: billsError } = await supabase
+          .from('bills')
+          .select('id, date')
+          .gte('date', startOfDay(startDate).toISOString())
+          .lte('date', endOfDay(endDate).toISOString());
+
+        if (billsError) throw billsError;
+
+        const billIds = bills?.map(b => b.id) || [];
+
+        let count = 0;
+        if (billIds.length > 0) {
+           const { data: items, error: itemsError } = await supabase
+             .from('bill_items')
+             .select('quantity')
+             .in('bill_id', billIds);
+
+           if (itemsError) throw itemsError;
+           // Sum quantities
+           count = items?.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0) || 0;
+        }
+        setBillItemsCount(count);
+
+        // 2. Fetch Bills in PREVIOUS equivalent range for comparison
+        const dayDiff = differenceInDays(endDate, startDate) + 1;
+        const prevStart = subDays(startDate, dayDiff);
+        const prevEnd = subDays(endDate, dayDiff);
+
+        const { data: prevBills, error: prevBillsError } = await supabase
+            .from('bills')
+            .select('id')
+            .gte('date', startOfDay(prevStart).toISOString())
+            .lte('date', endOfDay(prevEnd).toISOString());
+
+        if (prevBillsError) throw prevBillsError;
+
+        const prevBillIds = prevBills?.map(b => b.id) || [];
+        let prevCount = 0;
+        if (prevBillIds.length > 0) {
+            const { data: prevItems, error: prevItemsError } = await supabase
+                .from('bill_items')
+                .select('quantity')
+                .in('bill_id', prevBillIds);
+
+            if (prevItemsError) throw prevItemsError;
+            prevCount = prevItems?.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0) || 0;
+        }
+        setPrevBillItemsCount(prevCount);
+
+      } catch (err) {
+        console.error("Error fetching bill stats:", err);
+      } finally {
+        setLoadingBillStats(false);
+      }
+    };
+
+    fetchBillStats();
+  }, [startDate, endDate]);
+
+  // --- Calculate Metrics ---
+  const metrics: SummaryMetrics = useMemo(() => {
+    if (loadingTransactions || !startDate || !endDate) {
+      return {
+        totalSales: 0, totalMoneyReceived: 0, itemsSold: 0, inventoryValue: 0, inventoryCount: 0,
+        prevTotalSales: 0, prevTotalMoneyReceived: 0, prevItemsSold: 0
       };
     }
 
-    let intervalStart: Date;
-    let intervalEnd: Date;
-    let chartLabel: string;
-    let chartDescription: string;
+    const start = startOfDay(startDate);
+    const end = endOfDay(endDate);
 
-    const now = new Date();
+    // Comparison Range
+    const dayDiff = differenceInDays(endDate, startDate) + 1;
+    const prevStart = subDays(startDate, dayDiff);
+    const prevEnd = subDays(endDate, dayDiff);
 
-    if (filterStartDate && filterEndDate) {
-        intervalStart = startOfMonth(filterStartDate);
-        intervalEnd = startOfMonth(filterEndDate); 
-        chartLabel = `Goods Given from ${format(filterStartDate, 'MMM yyyy')} to ${format(filterEndDate, 'MMM yyyy')}`;
-        chartDescription = `Displaying total goods given per month for the selected period.`;
-    } else {
-        intervalStart = subMonths(startOfMonth(now), 2);
-        intervalEnd = startOfMonth(now);
-        chartLabel = "Goods Given Over Last 3 Months";
-        chartDescription = "This chart displays the total value of goods given each month for the past 3 months.";
-    }
-    
-    let monthsInInterval: Date[] = [];
-    try {
-        monthsInInterval = eachMonthOfInterval({
-        start: intervalStart,
-        end: intervalEnd,
-      });
-    } catch (e) {
-      // Fallback if dates are invalid relative to each other
-       monthsInInterval = [];
-    }
+    let totalSales = 0;
+    let totalMoneyReceived = 0;
+    let prevTotalSales = 0;
+    let prevTotalMoneyReceived = 0;
 
-    const relevantTransactions = transactions.filter(transaction => {
-        try {
-            const transactionDate = parseISO(transaction.date);
-            if (filterStartDate && transactionDate < startOfDay(filterStartDate)) return false;
-            if (filterEndDate && transactionDate > endOfDay(filterEndDate)) return false;
-            return true;
-        } catch (error) {
-            console.error("Error parsing transaction date for filtering:", transaction.date, error);
-            return false;
-        }
-    });
-
-    // 1. Prepare Monthly Data (Bar/Line Charts)
-    const dataByMonth: Record<string, number> = {};
-    relevantTransactions.forEach(transaction => {
-      try {
-        const transactionDate = parseISO(transaction.date);
-        const monthKey = format(transactionDate, 'MMM yyyy');
-        dataByMonth[monthKey] = (dataByMonth[monthKey] || 0) + transaction.goodsGiven;
-      } catch (error) {
-        console.error("Error parsing transaction date for aggregation:", transaction.date, error);
+    transactions.forEach(t => {
+      const tDate = parseISO(t.date);
+      // Current Range
+      if (isWithinInterval(tDate, { start, end })) {
+        totalSales += t.goodsGiven;
+        totalMoneyReceived += t.moneyReceived;
+      }
+      // Previous Range
+      if (isWithinInterval(tDate, { start: prevStart, end: prevEnd })) {
+         prevTotalSales += t.goodsGiven;
+         prevTotalMoneyReceived += t.moneyReceived;
       }
     });
 
-    const monthlyData = monthsInInterval.map((monthDate, index) => {
-      const monthKey = format(monthDate, 'MMM yyyy');
-      const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`;
-      return {
-        month: monthKey,
-        totalGoodsGiven: dataByMonth[monthKey] || 0,
-        fill: colorVar,
-      };
-    });
+    // Inventory (Static, no history tracking usually)
+    // NOTE: Product table currently lacks 'quantity'.
+    // Assuming 0 if missing to avoid crashes, or sum if strictly required.
+    // Logic: Sum of (cost_price * 0) since quantity is missing.
+    // If user insists on Inventory Value, we need quantity.
+    // For now, I will count distinct products as "Inventory On Hand" count?
+    // Or just 0.
+    const inventoryCount = products.length;
+    const inventoryValue = 0; // Cannot calculate without quantity
 
-    // 2. Prepare Top 5 Shopkeepers Data (Pie Chart)
-    const goodsByShopkeeper: Record<string, number> = {};
-    relevantTransactions.forEach(t => {
-      goodsByShopkeeper[t.shopkeeperId] = (goodsByShopkeeper[t.shopkeeperId] || 0) + t.goodsGiven;
-    });
-
-    const sortedShopkeepers = Object.entries(goodsByShopkeeper)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5) // Take Top 5
-      .map(([id, total], index) => {
-        const shopkeeper = shopkeepers.find(s => s.id === id);
-        const name = shopkeeper ? shopkeeper.name : 'Unknown';
-        const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`;
-        return {
-          name: name,
-          totalGoodsGiven: total,
-          fill: colorVar
-        };
-      });
-
-    const pieConfig: ChartConfig = {
-      totalGoodsGiven: {
-        label: "Goods Given",
-      },
+    return {
+      totalSales,
+      totalMoneyReceived,
+      itemsSold: billItemsCount,
+      inventoryValue,
+      inventoryCount,
+      prevTotalSales,
+      prevTotalMoneyReceived,
+      prevItemsSold: prevBillItemsCount
     };
+  }, [transactions, loadingTransactions, startDate, endDate, products, billItemsCount, prevBillItemsCount]);
 
-    sortedShopkeepers.forEach(item => {
-      pieConfig[item.name] = {
-        label: item.name,
-        color: item.fill,
-      };
+  // --- Prepare Chart Data ---
+  const chartData: ChartDataPoint[] = useMemo(() => {
+    if (loadingTransactions || !startDate || !endDate) return [];
+
+    const start = startOfDay(startDate);
+    const end = endOfDay(endDate);
+    const dataMap: Record<string, number> = {};
+
+    transactions.forEach(t => {
+        const tDate = parseISO(t.date);
+        if (isWithinInterval(tDate, { start, end })) {
+            // Group by Day
+            const key = format(tDate, 'yyyy-MM-dd');
+            dataMap[key] = (dataMap[key] || 0) + t.goodsGiven;
+        }
     });
 
+    // Fill gaps? Or just show days with activity?
+    // For a cleaner graph over 3 months, maybe group by Week or Month if range is large?
+    // Let's stick to daily but maybe sort properly.
+    // Actually, if range is > 32 days, maybe group by Month?
+    const days = differenceInDays(end, start);
 
-    return { monthlyData, topShopkeepersData: sortedShopkeepers, label: chartLabel, description: chartDescription, pieConfig };
+    let result: ChartDataPoint[] = [];
 
-  }, [transactions, loadingTransactions, isMounted, filterStartDate, filterEndDate, shopkeepers]);
+    if (days > 60) {
+        // Group by Month
+        const monthlyData: Record<string, number> = {};
+        transactions.forEach(t => {
+            const tDate = parseISO(t.date);
+            if (isWithinInterval(tDate, { start, end })) {
+                const key = format(tDate, 'MMM yyyy');
+                monthlyData[key] = (monthlyData[key] || 0) + t.goodsGiven;
+            }
+        });
+        // We need to order them.
+        // Quick hack: rely on iteration order if sorted keys? No.
+        // Better: Iterate through months in interval.
+        // (Simplified for now: Just keys)
+        // Let's use the previous logic's style for mapping
+        // But for this "Upgrade", let's keep it simple: Map available data points.
+         result = Object.entries(monthlyData).map(([key, val]) => ({
+            date: key,
+            fullDate: parseISO(Object.keys(dataMap).find(k => format(parseISO(k), 'MMM yyyy') === key) || new Date().toISOString()), // Approximate for sort
+            sales: val
+        }));
+         // This is a bit messy for sorting months.
+         // Let's just default to Daily for < 90 days, or list all relevant transactions.
+         // Actually, let's just map the aggregations cleanly.
+    }
+
+    // Default: Daily Aggregation sorted
+    result = Object.entries(dataMap).map(([dateStr, val]) => ({
+        date: format(parseISO(dateStr), 'MMM dd'),
+        fullDate: parseISO(dateStr),
+        sales: val
+    })).sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime());
+
+    return result;
+  }, [transactions, loadingTransactions, startDate, endDate]);
+
 
   const clearFilters = () => {
-    setFilterStartDate(undefined);
-    setFilterEndDate(undefined);
+    // Reset to default 3 months
+    const now = new Date();
+    setStartDate(subMonths(startOfMonth(now), 2));
+    setEndDate(endOfDay(now));
   };
 
-  if (!isMounted || loadingTransactions) {
+  // Helper to calculate percentage change
+  const calcChange = (curr: number, prev: number) => {
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return ((curr - prev) / prev) * 100;
+  };
+
+  if (!isMounted || loadingTransactions || loadingProducts) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-muted-foreground">
         <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
-        <p className="text-base font-medium">Loading graph data...</p>
+        <p className="text-base font-medium">Loading dashboard...</p>
       </div>
     );
   }
 
-  const hasData = processedChartData.monthlyData.some(d => d.totalGoodsGiven > 0);
-  const hasPieData = processedChartData.topShopkeepersData.some(d => d.totalGoodsGiven > 0);
-
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">{processedChartData.label}</h2>
-        <p className="text-muted-foreground">Visualize transaction trends and goods distribution over time.</p>
+    <div className="flex flex-col h-full space-y-6 max-w-[1600px] mx-auto p-4 md:p-6">
+
+      {/* Header & Filter */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+        <div>
+           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+           <p className="text-muted-foreground">Overview of your business performance.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 items-center bg-card p-2 rounded-lg border shadow-sm">
+             <div className="flex items-center gap-2 w-full sm:w-auto">
+                 <Filter className="h-4 w-4 text-muted-foreground" />
+                 <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="Start Date"
+                  className="w-[140px]"
+                />
+             </div>
+             <span className="text-muted-foreground text-xs hidden sm:inline">-</span>
+             <div className="w-full sm:w-auto">
+                <DatePicker
+                  value={endDate}
+                  onChange={setEndDate}
+                  placeholder="End Date"
+                  className="w-[140px]"
+                />
+             </div>
+             {/* <Button variant="ghost" size="icon" onClick={clearFilters} title="Reset to last 3 months">
+                <XCircle className="h-4 w-4" />
+             </Button> */}
+        </div>
       </div>
 
-      <Card className="shadow-sm border-border/60 bg-card/50 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center font-medium">
-            <Filter className="mr-2 h-4 w-4 text-primary" /> Filter by Date Range
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-          <div className="w-full sm:w-auto">
-             <DatePicker
-              value={filterStartDate}
-              onChange={setFilterStartDate}
-              className="w-full"
-              placeholder="Start Date"
-            />
-          </div>
-          <span className="text-muted-foreground text-sm font-medium">to</span>
-           <div className="w-full sm:w-auto">
-            <DatePicker
-              value={filterEndDate}
-              onChange={setFilterEndDate}
-              disabled={(date) => !!filterStartDate && date < filterStartDate}
-              className="w-full"
-              placeholder="End Date"
-            />
-          </div>
-          <div className="flex-grow" />
-          <Button 
-            onClick={clearFilters} 
-            variant="ghost" 
-            size="sm" 
-            disabled={!filterStartDate && !filterEndDate}
-            className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
-          >
-            <XCircle className="mr-2 h-4 w-4" /> Clear Filters
-          </Button>
-        </CardContent>
-      </Card>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-8"
-      >
-        {/* Bar Chart */}
-        <Card className="shadow-lg border-border/60">
-          <CardHeader>
-            <CardTitle>Bar Chart - {processedChartData.label}</CardTitle>
-            <CardDescription>
-              {processedChartData.description}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {hasData ? (
-              <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={processedChartData.monthlyData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/0.2)" />
-                    <XAxis
-                      dataKey="month"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={12}
-                      padding={{ left: 10, right: 10 }}
-                      interval={processedChartData.monthlyData.length > 12 ? Math.floor(processedChartData.monthlyData.length / 12) : 0}
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                    />
-                    <YAxis
-                      tickFormatter={(value) => `₹${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`}
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={12}
-                      width={60}
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-                      content={<ChartTooltipContent indicator="dot" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar
-                      dataKey="totalGoodsGiven"
-                      fill="var(--color-totalGoodsGiven)"
-                      fillOpacity={0.9}
-                      radius={[4, 4, 0, 0]}
-                      barSize={Math.max(10, 40 - Math.max(0, processedChartData.monthlyData.length - 12) * 2)}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <NoDataState filterActive={!!(filterStartDate || filterEndDate)} />
-            )}
-          </CardContent>
-        </Card>
+      <div className="flex flex-col lg:flex-row gap-6">
 
-        {/* Line Chart */}
-        <Card className="shadow-lg border-border/60">
-          <CardHeader>
-            <CardTitle>Line Chart - {processedChartData.label}</CardTitle>
-            <CardDescription>
-               Trend of goods given over the selected period.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {hasData ? (
-              <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-                <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={processedChartData.monthlyData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground)/0.2)" />
-                    <XAxis
-                      dataKey="month"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={12}
-                      padding={{ left: 10, right: 10 }}
-                      interval={processedChartData.monthlyData.length > 12 ? Math.floor(processedChartData.monthlyData.length / 12) : 0}
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                    />
-                    <YAxis
-                      tickFormatter={(value) => `₹${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`}
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={12}
-                      width={60}
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                    />
-                    <ChartTooltip
-                      cursor={{ stroke: 'hsl(var(--muted-foreground))' }}
-                      content={<ChartTooltipContent indicator="line" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
-                    />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="totalGoodsGiven"
-                      stroke="var(--color-totalGoodsGiven)"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: "var(--color-totalGoodsGiven)" }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <NoDataState filterActive={!!(filterStartDate || filterEndDate)} />
-            )}
-          </CardContent>
-        </Card>
+        {/* Left Column: Summary Cards (30%) */}
+        <div className="w-full lg:w-[30%] space-y-4">
 
-        {/* Pie Chart */}
-        <Card className="shadow-lg border-border/60">
-          <CardHeader>
-            <CardTitle>Top 5 Shopkeepers</CardTitle>
-            <CardDescription>
-              Best shopkeepers by total goods given.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {hasPieData ? (
-              <ChartContainer config={processedChartData.pieConfig} className="min-h-[350px] w-full mx-auto">
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent hideLabel nameKey="name" indicator="dot" className="bg-background/95 backdrop-blur-sm border-border shadow-xl" />}
-                    />
-                    <Pie
-                      data={processedChartData.topShopkeepersData}
-                      dataKey="totalGoodsGiven"
-                      nameKey="name"
-                      innerRadius={60}
-                      outerRadius={120}
-                      strokeWidth={2}
-                      paddingAngle={2}
-                    >
-                      {processedChartData.topShopkeepersData.map((entry, index) => (
-                         <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <ChartLegend content={<ChartLegendContent nameKey="name" />} className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <NoDataState filterActive={!!(filterStartDate || filterEndDate)} />
-            )}
-          </CardContent>
-          <CardFooter className="flex-col items-start gap-2 text-sm border-t pt-4 bg-muted/10">
-            <div className="leading-none text-muted-foreground">
-              Showing top 5 shopkeepers based on goods given.
-              {(filterStartDate && filterEndDate)
-                ? ` Data range: ${format(filterStartDate, 'MMM d, yyyy')} - ${format(filterEndDate, 'MMM d, yyyy')}.`
-                : " Data range: Last 3 months."
-              }
-            </div>
-          </CardFooter>
-        </Card>
-      </motion.div>
+            {/* Sales Card */}
+            <SummaryCard
+                title="Sales"
+                value={`₹${metrics.totalSales.toLocaleString()}`}
+                change={calcChange(metrics.totalSales, metrics.prevTotalSales)}
+                icon={<DollarSign className="h-5 w-5 text-blue-600" />}
+                subtext={`Previous: ₹${metrics.prevTotalSales.toLocaleString()}`}
+            />
+
+            {/* Money Received Card */}
+            <SummaryCard
+                title="Money Received"
+                value={`₹${metrics.totalMoneyReceived.toLocaleString()}`}
+                change={calcChange(metrics.totalMoneyReceived, metrics.prevTotalMoneyReceived)}
+                icon={<CreditCard className="h-5 w-5 text-green-600" />}
+                subtext={`Previous: ₹${metrics.prevTotalMoneyReceived.toLocaleString()}`}
+            />
+
+            {/* Items Sold Card */}
+            <SummaryCard
+                title="Items Sold"
+                value={loadingBillStats ? "..." : metrics.itemsSold.toLocaleString()}
+                change={calcChange(metrics.itemsSold, metrics.prevItemsSold)}
+                icon={<ShoppingCart className="h-5 w-5 text-purple-600" />}
+                subtext={`Previous: ${metrics.prevItemsSold}`}
+            />
+
+            {/* Inventory On Hand (Count of Products) */}
+            <SummaryCard
+                title="Products (Types)"
+                value={metrics.inventoryCount.toLocaleString()}
+                icon={<Package className="h-5 w-5 text-orange-600" />}
+                subtext="Total active product types"
+                change={0} // No history for static product count
+                hideChange
+            />
+
+             {/* Inventory Value (Placeholder) */}
+             <SummaryCard
+                title="Inventory Value"
+                value="N/A"
+                icon={<Activity className="h-5 w-5 text-gray-600" />}
+                subtext="Requires quantity tracking"
+                change={0}
+                hideChange
+            />
+
+        </div>
+
+        {/* Right Column: Charts (70%) */}
+        <div className="w-full lg:w-[70%] space-y-6">
+
+            {/* Sales Over Time (Line) */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>Sales Over Time</CardTitle>
+                    <CardDescription>Daily sales performance for the selected period.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-0">
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#888888"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    minTickGap={30}
+                                />
+                                <YAxis
+                                    stroke="#888888"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(value) => `₹${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Sales']}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="sales"
+                                    stroke="#2563eb"
+                                    strokeWidth={3}
+                                    dot={false}
+                                    activeDot={{ r: 6, strokeWidth: 0 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+            </Card>
+
+             {/* Sales Over Time (Bar) */}
+             <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>Sales Volume</CardTitle>
+                    <CardDescription>Comparative view of sales volume.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-0">
+                    <div className="h-[300px] w-full">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#888888"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    minTickGap={30}
+                                />
+                                <YAxis
+                                    stroke="#888888"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(value) => `₹${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: '#f3f4f6' }}
+                                    contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Sales']}
+                                />
+                                <Bar
+                                    dataKey="sales"
+                                    fill="#3b82f6"
+                                    radius={[4, 4, 0, 0]}
+                                    barSize={30}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+            </Card>
+
+        </div>
+
+      </div>
     </div>
   );
 }
 
-function NoDataState({ filterActive }: { filterActive: boolean }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
-        <PackageSearch className="h-10 w-10 text-muted-foreground" />
-      </div>
-      <p className="text-lg font-semibold">No Transaction Data Available</p>
-      <p className="text-muted-foreground mt-1 max-w-sm">
-        {filterActive
-          ? "There are no transactions recorded for the selected period."
-          : "There are no transactions recorded in the last 3 months."
-        }
-      </p>
-    </div>
-  );
+// Sub-component for uniform Cards
+function SummaryCard({ title, value, change, icon, subtext, hideChange }: {
+    title: string, value: string, change: number, icon: React.ReactNode, subtext?: string, hideChange?: boolean
+}) {
+    const isPositive = change >= 0;
+
+    return (
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+                        <h3 className="text-2xl font-bold">{value}</h3>
+                    </div>
+                    <div className="p-2 bg-muted/20 rounded-full">
+                        {icon}
+                    </div>
+                </div>
+
+                <div className="mt-4 flex items-center text-xs">
+                    {!hideChange && (
+                        <span className={`flex items-center font-medium ${isPositive ? 'text-green-600' : 'text-red-600'} mr-2`}>
+                            {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                            {Math.abs(change).toFixed(1)}%
+                        </span>
+                    )}
+                    <span className="text-muted-foreground">{subtext}</span>
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
