@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Bill, BillSettings, BillCustomer } from '@/lib/types';
+import { useData } from '@/contexts/DataContext';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
