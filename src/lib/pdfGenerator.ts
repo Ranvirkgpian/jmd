@@ -202,8 +202,11 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
   const rightColX = pageWidth - margin - 40;
   const valX = pageWidth - margin;
 
+  // Subtotal (Green)
+  doc.setTextColor(0, 128, 0); // Green
   doc.text("Subtotal:", rightColX, yPos);
   doc.text(bill.subtotal.toFixed(2), valX, yPos, { align: 'right' });
+  doc.setTextColor(0, 0, 0); // Reset to black
   yPos += 6;
 
   if (bill.discount_amount > 0) {
@@ -218,16 +221,22 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
     yPos += 6;
   }
 
+  // Total (Blue)
   doc.setFont(fontName, "bold");
   doc.setFontSize(12);
+  doc.setTextColor(0, 0, 255); // Blue
   doc.text("Total:", rightColX, yPos);
   doc.text(bill.total_amount.toFixed(2), valX, yPos, { align: 'right' });
+  doc.setTextColor(0, 0, 0); // Reset to black
   yPos += 10;
 
   if (dueAmount !== undefined) {
+    // Due Amount (Red)
     doc.setFontSize(14);
+    doc.setTextColor(255, 0, 0); // Red
     doc.text("Due Amount:", rightColX - 10, yPos);
     doc.text(`Rs. ${dueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, valX, yPos, { align: 'right' });
+    doc.setTextColor(0, 0, 0); // Reset to black
     yPos += 10;
   }
 

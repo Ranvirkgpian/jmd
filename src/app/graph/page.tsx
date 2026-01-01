@@ -37,7 +37,8 @@ import {
   CreditCard,
   TrendingUp,
   TrendingDown,
-  Activity
+  Activity,
+  Users
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -53,7 +54,7 @@ interface SummaryMetrics {
   totalSales: number;
   totalMoneyReceived: number;
   itemsSold: number;
-  inventoryValue: number; // Placeholder
+  activeShopkeepers: number;
   inventoryCount: number; // Placeholder
 
   prevTotalSales: number;
@@ -195,13 +196,27 @@ export default function GraphPage() {
     // For now, I will count distinct products as "Inventory On Hand" count?
     // Or just 0.
     const inventoryCount = products.length;
-    const inventoryValue = 0; // Cannot calculate without quantity
+
+    // Active Shopkeepers Logic
+    // "Number of shopkeepers who do transaction in last 3 months"
+    const threeMonthsAgo = subMonths(new Date(), 3);
+    const activeShopkeepersSet = new Set<string>();
+
+    // We scan ALL transactions for this metric, not just the filtered ones.
+    // But DataContext 'transactions' contains all of them.
+    transactions.forEach(t => {
+      if (!t.deleted_at && parseISO(t.date) >= threeMonthsAgo) {
+        activeShopkeepersSet.add(t.shopkeeperId);
+      }
+    });
+    const activeShopkeepers = activeShopkeepersSet.size;
+
 
     return {
       totalSales,
       totalMoneyReceived,
       itemsSold: billItemsCount,
-      inventoryValue,
+      activeShopkeepers,
       inventoryCount,
       prevTotalSales,
       prevTotalMoneyReceived,
@@ -370,12 +385,12 @@ export default function GraphPage() {
                 hideChange
             />
 
-             {/* Inventory Value (Placeholder) */}
+             {/* Active Shopkeepers */}
              <SummaryCard
-                title="Inventory Value"
-                value="N/A"
-                icon={<Activity className="h-5 w-5 text-gray-600" />}
-                subtext="Requires quantity tracking"
+                title="Active Shopkeepers"
+                value={metrics.activeShopkeepers.toString()}
+                icon={<Users className="h-5 w-5 text-blue-600" />}
+                subtext="Transacted in last 3 months"
                 change={0}
                 hideChange
             />
