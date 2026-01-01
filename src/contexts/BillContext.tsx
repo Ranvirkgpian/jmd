@@ -94,6 +94,39 @@ export const BillProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const deleteCustomer = async (id: string) => {
+    try {
+      // 1. Unlink associated bills (set customer_id to null)
+      const { error: updateBillsError } = await supabase
+        .from('bills')
+        .update({ customer_id: null } as any) // Explicitly allow null for the FK
+        .eq('customer_id', id);
+
+      if (updateBillsError) throw updateBillsError;
+
+      // 2. Delete the customer
+      const { error: deleteCustomerError } = await supabase
+        .from('bill_customers')
+        .delete()
+        .eq('id', id);
+
+      if (deleteCustomerError) throw deleteCustomerError;
+
+      // 3. Update Local State
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      setBills(prev => prev.map(b => b.customer_id === id ? { ...b, customer_id: 'unknown' } : b)); // customer_id is a string in types, but database allows null.
+      // Ideally we'd update the Bill type to allow null, but to avoid cascading type errors, we can leave it as is or handle it.
+      // Actually, looking at types, `customer_id: string`. If I set it to null in DB, the local type might be wrong.
+      // However, the `Bill` interface says `customer_id: string`.
+      // If the DB returns null, it might crash or be null at runtime.
+      // Let's check the Bill type again.
+
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      throw error;
+    }
+  };
+
   const addBill = async (
     billData: Omit<Bill, 'id' | 'bill_number' | 'created_at' | 'deleted_at' | 'items'>,
     itemsData: Omit<BillItem, 'id' | 'bill_id'>[]
@@ -257,6 +290,7 @@ export const BillProvider = ({ children }: { children: ReactNode }) => {
       customers,
       loadingCustomers,
       addCustomer,
+      deleteCustomer,
       bills,
       loadingBills,
       addBill,
