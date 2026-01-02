@@ -196,21 +196,19 @@ export default function HomePage() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Bill #</TableHead>
+                        <TableHead>S.No.</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Amount</TableHead>
-                        <TableHead>Paid</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {todaysBills.map((bill) => {
+                    {todaysBills.map((bill, index) => {
                         return (
                         <TableRow key={bill.id}>
-                            <TableCell className="font-medium">{bill.bill_number}</TableCell>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
                             <TableCell>{bill.customer_name}</TableCell>
                             <TableCell>₹{bill.total_amount.toFixed(2)}</TableCell>
-                            <TableCell className="text-green-600">₹{bill.paid_amount.toFixed(2)}</TableCell>
                             <TableCell className="text-right">
                             <Button variant="ghost" size="sm" onClick={() => setSelectedBill(bill)}>
                                 <Eye className="w-4 h-4" />
