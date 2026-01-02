@@ -234,7 +234,7 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
     // Due Amount (Red)
     doc.setFontSize(14);
     doc.setTextColor(255, 0, 0); // Red
-    doc.text("Previous Due Amount:", rightColX - 35, yPos);
+    doc.text("Previous Due Amount:", rightColX - 80, yPos);
     doc.text(`Rs. ${dueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, valX, yPos, { align: 'right' });
     doc.setTextColor(0, 0, 0); // Reset to black
     yPos += 10;
