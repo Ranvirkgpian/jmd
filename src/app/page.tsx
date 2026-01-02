@@ -7,13 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { BillDetails } from '@/components/bill-book/BillDetails';
+import { Bill } from '@/lib/types';
 import { FileText, ArrowUpCircle, ArrowDownCircle, Banknote, Calendar, Eye, Loader2 } from 'lucide-react';
 import { format, isToday } from 'date-fns';
 import Link from 'next/link';
 
 export default function HomePage() {
   const { transactions, loadingTransactions } = useData();
-  const { bills, loadingBills } = useBill();
+  const { bills, loadingBills, settings, customers } = useBill();
+  const [selectedBill, setSelectedBill] = React.useState<Bill | null>(null);
 
   // Get current date string in YYYY-MM-DD for comparison and display
   const today = new Date();
@@ -196,33 +200,19 @@ export default function HomePage() {
                         <TableHead>Customer</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Paid</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
                     {todaysBills.map((bill) => {
-                        const due = bill.total_amount - bill.paid_amount;
                         return (
                         <TableRow key={bill.id}>
                             <TableCell className="font-medium">{bill.bill_number}</TableCell>
                             <TableCell>{bill.customer_name}</TableCell>
                             <TableCell>₹{bill.total_amount.toFixed(2)}</TableCell>
                             <TableCell className="text-green-600">₹{bill.paid_amount.toFixed(2)}</TableCell>
-                            <TableCell>
-                            {due <= 0 ? (
-                                <Badge variant="default" className="bg-green-500 hover:bg-green-600">Paid</Badge>
-                            ) : bill.paid_amount === 0 ? (
-                                <Badge variant="destructive">Unpaid</Badge>
-                            ) : (
-                                <Badge variant="secondary" className="text-orange-600">Partial</Badge>
-                            )}
-                            </TableCell>
                             <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                                // View Details Logic Placeholder
-                                console.log('View bill', bill.id);
-                            }}>
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedBill(bill)}>
                                 <Eye className="w-4 h-4" />
                             </Button>
                             </TableCell>
@@ -236,6 +226,21 @@ export default function HomePage() {
             </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!selectedBill} onOpenChange={(open) => !open && setSelectedBill(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader>
+              <DialogTitle>Bill Details</DialogTitle>
+           </DialogHeader>
+           {selectedBill && (
+              <BillDetails
+                 bill={selectedBill}
+                 settings={settings}
+                 customer={customers.find(c => c.id === selectedBill.customer_id)}
+              />
+           )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

@@ -234,7 +234,7 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
     // Due Amount (Red)
     doc.setFontSize(14);
     doc.setTextColor(255, 0, 0); // Red
-    doc.text("Due Amount:", rightColX - 10, yPos);
+    doc.text("Previous Due Amount:", rightColX - 35, yPos);
     doc.text(`Rs. ${dueAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, valX, yPos, { align: 'right' });
     doc.setTextColor(0, 0, 0); // Reset to black
     yPos += 10;
@@ -242,7 +242,8 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
 
   // -- FOOTER --
   doc.setFontSize(9);
-  doc.setFont(fontName, "normal");
+  doc.setFont(fontName, "bold");
+  doc.setTextColor(147, 51, 234); // Light Purple (Purple-600)
 
   const footerMessage = settings?.footer_message || "Thank you for your business!";
   const footerLines = doc.splitTextToSize(footerMessage, pageWidth - (margin * 2));
