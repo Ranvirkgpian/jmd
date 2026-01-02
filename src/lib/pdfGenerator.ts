@@ -39,18 +39,50 @@ const addHindiFonts = async (doc: jsPDF) => {
   }
 };
 
-const getLogoBase64 = async (): Promise<string | null> => {
+interface LogoData {
+  base64: string;
+  width: number;
+  height: number;
+  ratio: number;
+}
+
+const getLogoData = async (): Promise<LogoData | null> => {
   try {
-    const response = await fetch('/logo.png');
+    const response = await fetch('/bill_logo.webp');
     if (!response.ok) return null;
     const blob = await response.blob();
+
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        // Create canvas to convert to PNG
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+             ctx.drawImage(img, 0, 0);
+             const base64 = canvas.toDataURL('image/png');
+             resolve({
+                 base64,
+                 width: img.width,
+                 height: img.height,
+                 ratio: img.width / img.height
+             });
+        } else {
+             resolve(null);
+        }
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = (e) => {
+         console.error('Error loading logo image:', e);
+         resolve(null);
+         URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(blob);
     });
   } catch (error) {
-    console.error('Error loading logo:', error);
+    console.error('Error fetching logo:', error);
     return null;
   }
 };
@@ -67,13 +99,20 @@ const createBillPDFDoc = async (bill: Bill, settings: BillSettings | null, custo
   const fontName = fontsLoaded ? 'NotoSansDevanagari' : 'helvetica';
 
   // Load Logo
-  const logoBase64 = await getLogoBase64();
-  if (logoBase64) {
+  const logoData = await getLogoData();
+  if (logoData) {
     // Add logo to top center
-    const logoWidth = 30;
-    const logoHeight = 20;
+    // Constrain to max width of 30 or max height of 30
+    let logoWidth = 30;
+    let logoHeight = logoWidth / logoData.ratio;
+
+    if (logoHeight > 30) {
+        logoHeight = 30;
+        logoWidth = logoHeight * logoData.ratio;
+    }
+
     const logoX = (pageWidth - logoWidth) / 2;
-    doc.addImage(logoBase64, 'PNG', logoX, yPos, logoWidth, logoHeight);
+    doc.addImage(logoData.base64, 'PNG', logoX, yPos, logoWidth, logoHeight);
 
     // Increment yPos to be below the logo
     yPos += logoHeight + 5;
