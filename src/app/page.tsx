@@ -79,6 +79,7 @@ export default function HomePage() {
             <Button
                 onClick={handlePdfClick}
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all text-lg"
+                aria-label="Open JMD Product catalog PDF in a new tab"
             >
                 <FileText className="mr-2 h-6 w-6" />
                 JMD PRODUCT
@@ -210,7 +211,12 @@ export default function HomePage() {
                             <TableCell>{bill.customer_name}</TableCell>
                             <TableCell>₹{bill.total_amount.toFixed(2)}</TableCell>
                             <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedBill(bill)}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedBill(bill)}
+                                aria-label={`View details for bill ${bill.customer_name}`}
+                            >
                                 <Eye className="w-4 h-4" />
                             </Button>
                             </TableCell>
