@@ -3,6 +3,20 @@ import jsPDF from 'jspdf';
 import { Bill, BillSettings } from '@/lib/types';
 import { format } from 'date-fns';
 
+// --- Bolt Cache for PDF Assets ---
+// Caching fonts and logo prevents redundant network requests and processing
+// on subsequent PDF generations, significantly speeding up the "Download" and "Share" actions.
+const fontCache: Record<string, string> = {};
+
+interface LogoData {
+  base64: string;
+  width: number;
+  height: number;
+  ratio: number;
+}
+let logoCache: LogoData | null = null;
+// ---------------------------------
+
 const addHindiFonts = async (doc: jsPDF) => {
   try {
     const fonts = [
@@ -19,6 +33,14 @@ const addHindiFonts = async (doc: jsPDF) => {
     ];
 
     await Promise.all(fonts.map(async (font) => {
+      // Check cache first
+      if (fontCache[font.name]) {
+        doc.addFileToVFS(font.name, fontCache[font.name]);
+        doc.addFont(font.name, 'NotoSansDevanagari', font.style);
+        return;
+      }
+
+      // Fetch if not cached
       const response = await fetch(font.url);
       if (!response.ok) throw new Error(`Failed to fetch font ${font.style}`);
       const buffer = await response.arrayBuffer();
@@ -27,6 +49,9 @@ const addHindiFonts = async (doc: jsPDF) => {
         new Uint8Array(buffer)
           .reduce((data, byte) => data + String.fromCharCode(byte), '')
       );
+
+      // Cache the result
+      fontCache[font.name] = base64String;
 
       doc.addFileToVFS(font.name, base64String);
       doc.addFont(font.name, 'NotoSansDevanagari', font.style);
@@ -39,14 +64,12 @@ const addHindiFonts = async (doc: jsPDF) => {
   }
 };
 
-interface LogoData {
-  base64: string;
-  width: number;
-  height: number;
-  ratio: number;
-}
-
 const getLogoData = async (): Promise<LogoData | null> => {
+  // Check cache first
+  if (logoCache) {
+    return logoCache;
+  }
+
   try {
     const response = await fetch('/bill_logo.webp');
     if (!response.ok) return null;
@@ -63,12 +86,18 @@ const getLogoData = async (): Promise<LogoData | null> => {
         if (ctx) {
              ctx.drawImage(img, 0, 0);
              const base64 = canvas.toDataURL('image/png');
-             resolve({
+
+             const data: LogoData = {
                  base64,
                  width: img.width,
                  height: img.height,
                  ratio: img.width / img.height
-             });
+             };
+
+             // Cache the result
+             logoCache = data;
+
+             resolve(data);
         } else {
              resolve(null);
         }
