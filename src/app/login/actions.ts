@@ -17,7 +17,14 @@ export async function loginAction(formData: FormData) {
     return { success: false, message: 'Invalid input', errors: result.error.flatten() };
   }
 
-  if (result.data.username === "JMD" && result.data.password === "311976") {
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  // Sentinel 🛡️: Removed hardcoded credentials.
+  // Authentication now requires environment variables to be set.
+  if (adminUsername && adminPassword &&
+      result.data.username === adminUsername &&
+      result.data.password === adminPassword) {
     return { success: true };
   } else {
     return { success: false, message: 'Invalid credentials' };
