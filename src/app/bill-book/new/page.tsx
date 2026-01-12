@@ -222,7 +222,7 @@ function CreateBillForm() {
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       <div className="flex items-center gap-4">
         <Link href="/bill-book">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
@@ -253,7 +253,7 @@ function CreateBillForm() {
                 </div>
                 <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon" title="Search Existing Customer">
+                    <Button variant="outline" size="icon" title="Search Existing Customer" aria-label="Search existing customer">
                       <Search className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
@@ -420,6 +420,7 @@ function CreateBillForm() {
                     className="text-destructive"
                     onClick={() => remove(index)}
                     disabled={fields.length === 1}
+                    aria-label="Remove item"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
