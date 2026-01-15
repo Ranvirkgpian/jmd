@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useBill } from '@/contexts/BillContext';
+import { useDebounce } from '@/hooks/use-debounce';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,16 +37,19 @@ export default function BillHistoryPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
 
-  const filteredBills = bills.filter(bill => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      bill.customer_name.toLowerCase().includes(searchLower) ||
-      bill.bill_number.toString().includes(searchLower) ||
-      format(new Date(bill.date), 'yyyy-MM-dd').includes(searchLower)
-    );
-  });
+  const filteredBills = useMemo(() => {
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return bills.filter(bill => {
+      return (
+        bill.customer_name.toLowerCase().includes(searchLower) ||
+        bill.bill_number.toString().includes(searchLower) ||
+        format(new Date(bill.date), 'yyyy-MM-dd').includes(searchLower)
+      );
+    });
+  }, [bills, debouncedSearchTerm]);
 
   const handleDelete = async (id: string) => {
     try {
