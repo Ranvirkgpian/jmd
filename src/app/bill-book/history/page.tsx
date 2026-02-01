@@ -20,7 +20,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -28,7 +27,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { BillDetails } from '@/components/bill-book/BillDetails';
 
@@ -38,7 +36,17 @@ export default function BillHistoryPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+
+  // Modal states
+  const [viewBillId, setViewBillId] = useState<string | null>(null);
+  const [deleteBillId, setDeleteBillId] = useState<string | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // ⚡ Bolt Optimization: Memoize customer lookup for O(1) access
+  const customerMap = useMemo(() => {
+    return new Map(customers.map(c => [c.id, c]));
+  }, [customers]);
 
   const filteredBills = useMemo(() => {
     const searchLower = debouncedSearchTerm.toLowerCase();
@@ -51,13 +59,26 @@ export default function BillHistoryPage() {
     });
   }, [bills, debouncedSearchTerm]);
 
-  const handleDelete = async (id: string) => {
+  // Derived state for modals
+  const selectedBill = useMemo(() =>
+    viewBillId ? bills.find(b => b.id === viewBillId) : null
+  , [bills, viewBillId]);
+
+  const selectedCustomer = useMemo(() =>
+    selectedBill ? customerMap.get(selectedBill.customer_id) : undefined
+  , [selectedBill, customerMap]);
+
+  const handleDelete = async () => {
+    if (!deleteBillId) return;
+
     try {
-      await deleteBill(id);
+      await deleteBill(deleteBillId);
       toast({
         title: "Bill Deleted",
         description: "The bill has been moved to trash.",
       });
+      setIsDeleteOpen(false);
+      setDeleteBillId(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -115,69 +136,46 @@ export default function BillHistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBills.map((bill) => {
-                  const customer = customers.find(c => c.id === bill.customer_id);
+                {filteredBills.map((bill) => (
+                  <TableRow key={bill.id}>
+                    <TableCell>{format(new Date(bill.date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{bill.customer_name}</TableCell>
+                    <TableCell>₹{bill.total_amount}</TableCell>
+                    <TableCell className="text-right flex justify-end gap-2">
+                       <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/bill-book/new?edit=${bill.id}`)}
+                          aria-label={`Edit bill for ${bill.customer_name}`}
+                        >
+                          <Pencil className="w-4 h-4 text-orange-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setViewBillId(bill.id);
+                            setIsViewOpen(true);
+                          }}
+                          aria-label={`View details for bill ${bill.customer_name}`}
+                        >
+                          <Eye className="w-4 h-4 text-blue-500" />
+                        </Button>
 
-                  return (
-                    <TableRow key={bill.id}>
-                      <TableCell>{format(new Date(bill.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell>{bill.customer_name}</TableCell>
-                      <TableCell>₹{bill.total_amount}</TableCell>
-                      <TableCell className="text-right flex justify-end gap-2">
-                         <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push(`/bill-book/new?edit=${bill.id}`)}
-                            aria-label={`Edit bill for ${bill.customer_name}`}
-                          >
-                            <Pencil className="w-4 h-4 text-orange-500" />
-                          </Button>
-                         <Dialog>
-                           <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setSelectedBillId(bill.id)}
-                                aria-label={`View details for bill ${bill.customer_name}`}
-                              >
-                                <Eye className="w-4 h-4 text-blue-500" />
-                              </Button>
-                           </DialogTrigger>
-                           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Bill Details</DialogTitle>
-                              </DialogHeader>
-                              <BillDetails
-                                bill={bill}
-                                settings={settings}
-                                customer={customer}
-                              />
-                           </DialogContent>
-                         </Dialog>
-
-                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" aria-label={`Delete bill for ${bill.customer_name}`}>
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently soft-delete the bill.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(bill.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setDeleteBillId(bill.id);
+                            setIsDeleteOpen(true);
+                          }}
+                          aria-label={`Delete bill for ${bill.customer_name}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
                 {filteredBills.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
@@ -190,6 +188,37 @@ export default function BillHistoryPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ⚡ Bolt Optimization: Centralized Modals to reduce DOM nodes */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Bill Details</DialogTitle>
+            </DialogHeader>
+            {selectedBill && (
+              <BillDetails
+                bill={selectedBill}
+                settings={settings}
+                customer={selectedCustomer}
+              />
+            )}
+         </DialogContent>
+       </Dialog>
+
+       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently soft-delete the bill.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteBillId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
