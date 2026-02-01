@@ -55,7 +55,7 @@ export default function CustomerPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/bill-book">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
@@ -75,6 +75,7 @@ export default function CustomerPage() {
                 className="pl-8 max-w-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search customers"
               />
             </div>
         </CardHeader>
@@ -117,7 +118,12 @@ export default function CustomerPage() {
                       <TableCell onClick={(e) => e.stopPropagation()}>
                          <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/90">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive/90"
+                              aria-label={`Delete customer ${customer.name}`}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -142,7 +148,14 @@ export default function CustomerPage() {
                         </AlertDialog>
                       </TableCell>
                       <TableCell>
-                         <Button asChild size="icon" variant="ghost" title="Create Bill" onClick={(e) => e.stopPropagation()}>
+                         <Button
+                           asChild
+                           size="icon"
+                           variant="ghost"
+                           title="Create Bill"
+                           onClick={(e) => e.stopPropagation()}
+                           aria-label={`Create bill for ${customer.name}`}
+                         >
                            <Link href={`/bill-book/new?customerId=${customer.id}`}>
                              <PlusCircle className="w-4 h-4 text-blue-600" />
                            </Link>
